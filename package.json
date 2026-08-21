@@ -1,0 +1,21 @@
+{
+  "name": "wabyloan",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=@wabyloan/backend",
+    "dev:frontend": "npm run dev --workspace=@wabyloan/frontend",
+    "test:engine": "npm run test --workspace=@wabyloan/engine",
+    "build:engine": "npm run build --workspace=@wabyloan/engine",
+    "db:migrate": "npm run db:migrate --workspace=@wabyloan/backend",
+    "db:seed": "npm run db:seed --workspace=@wabyloan/backend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
