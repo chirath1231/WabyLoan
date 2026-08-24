@@ -1,0 +1,18 @@
+export const colors = {
+  teal900: '#134e4a',
+  teal800: '#115e59',
+  teal700: '#0f766e',
+  teal100: '#ccfbf1',
+  teal50: '#f0fdfa',
+  text900: '#111827',
+  text600: '#4b5563',
+  text400: '#9ca3af',
+  line: '#e5e7eb',
+  card: '#ffffff',
+  background: '#f7f8fa',
+  danger: '#b91c1c',
+  danger100: '#fee2e2',
+  amber700: '#b45309',
+  grey100: '#f3f4f6',
+  white: '#ffffff',
+};

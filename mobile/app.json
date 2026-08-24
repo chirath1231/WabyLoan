@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "WabyLoan",
+    "slug": "wabyloan-mobile",
+    "scheme": "wabyloan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "backgroundColor": "#0f766e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wabyloan.mobile"
+    },
+    "android": {
+      "package": "com.wabyloan.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f766e"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
