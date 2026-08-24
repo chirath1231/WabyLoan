@@ -40,9 +40,7 @@ function BankCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-white p-4 transition-shadow ${
-        isBest ? 'border-gold-600 shadow-[0_0_0_2px_#B4922D,0_12px_30px_-14px_rgba(180,146,45,0.55)]' : 'border-line'
-      }`}
+      className={`rounded-2xl border bg-card p-4 ${isBest ? 'border-teal-700' : 'border-line'}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -54,9 +52,9 @@ function BankCard({
           <div>
             <div className="flex flex-wrap items-center gap-1.5">
               <p className="font-display font-semibold text-text-900">{result.bankName}</p>
-              {isBest && <Badge tone="gold">{t('bestOffer')}</Badge>}
+              {isBest && <Badge tone="teal">{t('bestOffer')}</Badge>}
               {result.sponsored && <Badge tone="grey">Sponsored</Badge>}
-              {result.variantLabel && <Badge tone="violet">{result.variantLabel}</Badge>}
+              {result.variantLabel && <Badge tone="grey">{result.variantLabel}</Badge>}
             </div>
             <Badge tone="teal" className="mt-1">
               {t('ratesEffective')}: {result.updatedDate} (Live)
@@ -161,7 +159,7 @@ export function Step5Results({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      <div className="rounded-xl2 border border-line bg-white p-4">
+      <div className="rounded-xl2 border border-line bg-card p-4">
         <Label>Loan term preference: {term} years</Label>
         <Slider value={term} min={bounds[0]} max={bounds[1]} onValueChange={setTerm} onValueCommit={(v) => runEvaluation(v)} />
       </div>

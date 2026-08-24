@@ -33,7 +33,7 @@ export function CallbackForm({ loanCategory, applicationId }: { loanCategory: Lo
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-2 rounded-xl2 border border-line bg-white p-3">
+    <div className="flex flex-wrap items-end gap-2 rounded-xl2 border border-line bg-card p-3">
       <div className="w-40">
         <TextInput placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
       </div>

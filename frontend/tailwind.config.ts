@@ -2,24 +2,38 @@ import type { Config } from 'tailwindcss';
 
 // Design tokens lifted from the validated prototype's CSS custom properties
 // (waby-loan (3).html :root block) — the "passbook ledger" teal/gold/violet/amber palette.
+// Each token resolves to a CSS variable (defined for light/dark in globals.css) so every
+// existing className adapts to the active theme without per-component changes.
+function themeColor(varName: string) {
+  return `rgb(var(${varName}) / <alpha-value>)`;
+}
+
 export default {
+  darkMode: 'class',
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
-        ink: { 900: '#0A2E2A', 700: '#134E48' },
-        teal: { 900: '#00352F', 800: '#00453D', 700: '#00695C', 600: '#0C8577', 100: '#DCEFEC', 50: '#F2F8F7' },
-        paper: '#F7F9F8',
-        card: '#FFFFFF',
-        gold: { 700: '#8A6D1D', 600: '#B4922D', 100: '#FBF3DD' },
-        danger: { DEFAULT: '#B3261E', 100: '#FBEAE9' },
-        amber: { 700: '#9A5B13', 100: '#FDF0DF' },
-        violet: { 700: '#5B3B9E', 100: '#EFE9FB' },
-        line: '#E4E9E7',
-        text: { 900: '#132420', 600: '#4B615C', 400: '#7E938D' },
+        ink: { 900: themeColor('--color-ink-900'), 700: themeColor('--color-ink-700') },
+        teal: {
+          900: themeColor('--color-teal-900'),
+          800: themeColor('--color-teal-800'),
+          700: themeColor('--color-teal-700'),
+          600: themeColor('--color-teal-600'),
+          100: themeColor('--color-teal-100'),
+          50: themeColor('--color-teal-50'),
+        },
+        paper: themeColor('--color-paper'),
+        card: themeColor('--color-card'),
+        gold: { 700: themeColor('--color-gold-700'), 600: themeColor('--color-gold-600'), 100: themeColor('--color-gold-100') },
+        danger: { DEFAULT: themeColor('--color-danger'), 100: themeColor('--color-danger-100') },
+        amber: { 700: themeColor('--color-amber-700'), 100: themeColor('--color-amber-100') },
+        violet: { 700: themeColor('--color-violet-700'), 100: themeColor('--color-violet-100') },
+        line: themeColor('--color-line'),
+        text: { 900: themeColor('--color-text-900'), 600: themeColor('--color-text-600'), 400: themeColor('--color-text-400') },
       },
       fontFamily: {
-        display: ['var(--font-sora)', 'sans-serif'],
+        display: ['var(--font-inter)', 'sans-serif'],
         sans: ['var(--font-inter)', 'sans-serif'],
         mono: ['var(--font-plex-mono)', 'monospace'],
       },

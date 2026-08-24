@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       <ContextAwareHeader />
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-16">
         <WizardHost />
       </main>
       <TrustFooter />

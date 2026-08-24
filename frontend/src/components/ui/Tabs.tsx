@@ -16,7 +16,7 @@ export function Tabs({
 }) {
   return (
     <RadixTabs.Root value={value} onValueChange={onValueChange}>
-      <RadixTabs.List className="mb-4 inline-flex gap-1 rounded-xl border border-line bg-white p-1">
+      <RadixTabs.List className="mb-4 inline-flex gap-1 rounded-xl border border-line bg-card p-1">
         {tabs.map((t) => (
           <RadixTabs.Trigger
             key={t.value}

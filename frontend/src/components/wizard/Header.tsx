@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { Landmark, LogOut, ShieldCheck, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { AuthPanel } from './AuthPanel';
 
 export function Header() {
@@ -14,7 +15,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-line bg-card">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-teal-700">
@@ -29,10 +30,11 @@ export function Header() {
           </Link>
 
           <div className="flex flex-shrink-0 items-center gap-2.5 sm:gap-3">
+            <ThemeToggle />
             <select
               value={i18n.language}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
-              className="rounded-lg border border-line bg-white px-2 py-1.5 text-[12.5px] font-semibold"
+              className="rounded-lg border border-line bg-card px-2 py-1.5 text-[12.5px] font-semibold"
               aria-label="Language"
             >
               <option value="en">EN</option>
@@ -68,7 +70,12 @@ export function Header() {
           </div>
         </div>
       </header>
-      {authOpen && !user && <AuthPanel onClose={() => setAuthOpen(false)} />}
+      {authOpen && !user && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setAuthOpen(false)} />
+          <AuthPanel onClose={() => setAuthOpen(false)} />
+        </>
+      )}
     </>
   );
 }

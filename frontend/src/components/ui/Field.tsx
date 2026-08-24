@@ -18,7 +18,7 @@ export function TextInput({ invalid, className, ...props }: TextInputProps) {
   return (
     <input
       className={cn(
-        'w-full rounded-[10px] border-[1.5px] bg-white px-3 py-2.5 text-sm transition-colors',
+        'w-full rounded-[10px] border-[1.5px] bg-card px-3 py-2.5 text-sm transition-colors',
         'focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100',
         invalid ? 'border-danger' : 'border-line',
         className,

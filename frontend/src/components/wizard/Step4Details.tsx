@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWizardStore } from '@/store/wizardStore';
 import { Label, Hint, MoneyInput, TextInput } from '@/components/ui/Field';
@@ -14,6 +15,11 @@ export function Step4Details({ onContinue, onBack }: { onContinue: () => void; o
 
   const vehicleTooOld = state.loanCategory === 'vehicle' && new Date().getFullYear() - state.vehicleYear > 15;
   const legalFee = state.loanCategory === 'housing' ? Math.min(state.housingPropertyValue * 0.003, 100000) : 0;
+
+  useEffect(() => {
+    setField('canGoNext', !vehicleTooOld);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleTooOld]);
 
   return (
     <div className="fade-in space-y-8">

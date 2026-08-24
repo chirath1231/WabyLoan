@@ -38,6 +38,11 @@ export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; o
 
   const canContinue = Boolean(state.sector) && Boolean(state.occupationId) && ageValid && retirementValid && !retirementReached;
 
+  useEffect(() => {
+    setField('canGoNext', canContinue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canContinue]);
+
   return (
     <div className="fade-in space-y-8">
       <div>
@@ -128,7 +133,7 @@ export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; o
         <div>
           <p className="text-sm font-semibold text-text-900">Joint Applicant</p>
           <p className="mt-0.5 text-[13px] text-text-600">Add a co-applicant's income to boost your affordability.</p>
-          {state.loanCategory === 'housing' && <Badge tone="gold" className="mt-2">Recommended for Housing Loans</Badge>}
+          {state.loanCategory === 'housing' && <Badge tone="teal" className="mt-2">Recommended for Housing Loans</Badge>}
         </div>
         <Switch checked={state.jointApplicant} onCheckedChange={(v) => setField('jointApplicant', v)} />
       </section>

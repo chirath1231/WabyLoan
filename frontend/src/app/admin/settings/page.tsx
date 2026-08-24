@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
     <div className="max-w-2xl space-y-8">
       <h1 className="font-display text-2xl font-bold text-text-900">Global Settings</h1>
 
-      <section className="space-y-3 rounded-2xl border border-line bg-white p-5">
+      <section className="space-y-3 rounded-2xl border border-line bg-card p-5">
         <p className="font-display text-sm font-bold text-text-900">DTI thresholds per sector</p>
         <Hint>Internal risk metric — never surfaced to end users.</Hint>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -61,7 +61,7 @@ export default function AdminSettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-line bg-white p-5">
+      <section className="space-y-3 rounded-2xl border border-line bg-card p-5">
         <p className="font-display text-sm font-bold text-text-900">Professional discounts</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -77,12 +77,12 @@ export default function AdminSettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-line bg-white p-5">
+      <section className="space-y-3 rounded-2xl border border-line bg-card p-5">
         <p className="font-display text-sm font-bold text-text-900">Loan Amount Rounding Step</p>
         <Select value={String(form.loanRoundingStep ?? 50000)} onChange={(v) => set('loanRoundingStep', Number(v))} options={ROUNDING_OPTIONS} />
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-line bg-white p-5">
+      <section className="space-y-3 rounded-2xl border border-line bg-card p-5">
         <p className="font-display text-sm font-bold text-text-900">Feature Flags</p>
         <Switch checked={!!form.businessLoanEnabled} onCheckedChange={(v) => set('businessLoanEnabled', v)} label="Business Loan category enabled" />
       </section>

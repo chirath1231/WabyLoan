@@ -23,7 +23,7 @@ export default function AdminAuditLogPage() {
       {isLoading ? (
         <p className="text-sm text-text-600">Loading…</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-line bg-white">
+        <div className="overflow-hidden rounded-2xl border border-line bg-card">
           <table className="w-full text-sm">
             <thead className="bg-teal-50 text-left text-[11px] uppercase text-text-600">
               <tr>

@@ -23,8 +23,8 @@ export function Stepper({ current }: { current: number }) {
                   done
                     ? 'border-teal-700 bg-teal-700 text-white'
                     : active
-                      ? 'border-teal-700 text-teal-700 shadow-[0_0_0_4px_rgba(220,239,236,1)]'
-                      : 'border-line bg-white text-text-400',
+                      ? 'border-teal-700 bg-teal-50 text-teal-700'
+                      : 'border-line bg-card text-text-400',
                 )}
               >
                 {done ? <Check size={16} /> : stepNum}

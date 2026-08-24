@@ -69,7 +69,7 @@ export function BankDetailModal({
   return (
     <Modal open onOpenChange={(v) => !v && onClose()} title={result.bankName} wide>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {result.variantLabel && <Badge tone="violet">{result.variantLabel.toUpperCase()}</Badge>}
+        {result.variantLabel && <Badge tone="grey">{result.variantLabel.toUpperCase()}</Badge>}
         <Badge tone="teal">{t('ratesEffective')}: {result.updatedDate} (Live)</Badge>
       </div>
 

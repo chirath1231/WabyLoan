@@ -13,6 +13,7 @@ export interface IncomeItemState {
 
 export interface WizardState {
   step: number;
+  canGoNext: boolean;
   loanCategory: LoanCategory | null;
   sector: Sector | null;
   occupationId: string | null;
@@ -64,6 +65,7 @@ export interface WizardState {
 
 const initialState = {
   step: 1,
+  canGoNext: true,
   loanCategory: null,
   sector: null,
   occupationId: null,

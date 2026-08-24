@@ -11,7 +11,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary: 'bg-teal-700 text-white hover:bg-teal-800 disabled:bg-text-400/50 disabled:cursor-not-allowed',
-  ghost: 'border border-line text-text-600 hover:border-teal-600 hover:text-teal-700 bg-white',
+  ghost: 'border border-line text-text-600 hover:border-teal-600 hover:text-teal-700 bg-card',
   whatsapp: 'bg-[#25D366] text-white hover:bg-[#1EBE59]',
   danger: 'bg-danger text-white hover:bg-danger/90',
 };

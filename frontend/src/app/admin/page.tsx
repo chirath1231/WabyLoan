@@ -14,7 +14,7 @@ export default function AdminDashboardPage() {
       <h1 className="mb-6 font-display text-2xl font-bold text-text-900">Admin Console</h1>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {CARDS.map((c) => (
-          <Link key={c.href} href={c.href} className="rounded-2xl border border-line bg-white p-5 hover:border-teal-600 hover:shadow-md">
+          <Link key={c.href} href={c.href} className="rounded-2xl border border-line bg-card p-5 hover:border-teal-600 hover:shadow-md">
             <p className="font-display font-semibold text-text-900">{c.title}</p>
             <p className="mt-1 text-[13px] text-text-600">{c.desc}</p>
           </Link>

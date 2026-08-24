@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { suggestEpf } from '@wabyloan/engine';
 import { Lock, Plus, Trash2, UploadCloud } from 'lucide-react';
@@ -111,6 +111,11 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
 
   const canContinue = !skipsPayslip ? net >= 0 && !deductionsExceedGross && grossExDeductions > 0 : true;
 
+  useEffect(() => {
+    setField('canGoNext', canContinue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canContinue]);
+
   if (skipsPayslip) {
     return (
       <div className="fade-in space-y-6">
@@ -175,7 +180,7 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex w-full flex-col items-center gap-2 rounded-xl2 border-2 border-dashed border-line bg-white py-8 text-text-600 hover:border-teal-600"
+            className="flex w-full flex-col items-center gap-2 rounded-xl2 border-2 border-dashed border-line bg-card py-8 text-text-600 hover:border-teal-600"
           >
             <UploadCloud size={24} className="text-teal-700" />
             <span className="text-sm font-semibold">{uploading ? 'Extracting…' : 'Click to upload a payslip photo or PDF'}</span>
@@ -184,7 +189,7 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
           <Hint>Your payslip is processed securely to extract figures — the document itself is not retained after this session.</Hint>
 
           {state.ocrItems.length > 0 && (
-            <div className="overflow-hidden rounded-xl2 border border-line bg-white">
+            <div className="overflow-hidden rounded-xl2 border border-line bg-card">
               {state.ocrEmployee && (
                 <div className="border-b border-line bg-teal-50 px-3 py-2 text-[12.5px] text-text-600">
                   {state.ocrEmployee.name} · {state.ocrEmployee.employer} · {state.ocrEmployee.designation} · {state.ocrEmployee.payPeriod}
@@ -255,7 +260,7 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
                     <Plus size={13} className="mr-1 inline" /> Add
                   </button>
                 </div>
-                <div className="overflow-hidden rounded-xl2 border border-line bg-white">
+                <div className="overflow-hidden rounded-xl2 border border-line bg-card">
                   {state.manualAllowanceItems.length === 0 && <p className="p-3 text-[13px] text-text-400">No allowance rows yet.</p>}
                   {state.manualAllowanceItems.map((item) => (
                     <ItemRow
@@ -285,7 +290,7 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
                     <Plus size={13} className="mr-1 inline" /> Add
                   </button>
                 </div>
-                <div className="overflow-hidden rounded-xl2 border border-line bg-white">
+                <div className="overflow-hidden rounded-xl2 border border-line bg-card">
                   {state.manualDeductionItems.map((item) => (
                     <ItemRow
                       key={item.id}

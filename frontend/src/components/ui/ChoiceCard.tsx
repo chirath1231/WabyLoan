@@ -26,13 +26,13 @@ export function ChoiceCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'flex w-full flex-col items-start gap-2 rounded-xl2 border-[1.5px] bg-white p-4 text-left transition-all',
+        'flex w-full flex-col items-start gap-2 rounded-xl2 border-[1.5px] bg-card p-4 text-left transition-all',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-100',
         disabled
           ? 'cursor-not-allowed border-line opacity-55'
           : selected
-            ? 'border-teal-700 bg-teal-50 shadow-[0_0_0_3px_rgba(220,239,236,1)]'
-            : 'border-line hover:-translate-y-0.5 hover:border-teal-600 hover:shadow-lg',
+            ? 'border-teal-700 bg-teal-50'
+            : 'border-line hover:border-teal-600',
       )}
     >
       <div className="flex w-full items-center justify-between">

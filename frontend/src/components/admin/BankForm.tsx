@@ -137,7 +137,7 @@ export function BankForm({ initial, onSave, onCancel, saving }: { initial?: Admi
         <div>
           <Label>General Scheme remarks / guarantor conditions (one per line)</Label>
           <textarea
-            className="w-full rounded-[10px] border-[1.5px] border-line bg-white px-3 py-2.5 text-sm"
+            className="w-full rounded-[10px] border-[1.5px] border-line bg-card px-3 py-2.5 text-sm"
             rows={3}
             value={(form.remarks ?? []).join('\n')}
             onChange={(e) => set('remarks', e.target.value.split('\n').filter(Boolean))}
@@ -179,7 +179,7 @@ export function BankForm({ initial, onSave, onCancel, saving }: { initial?: Admi
         <div>
           <Label>Special / Professional Scheme remarks (one per line, leave blank if none)</Label>
           <textarea
-            className="w-full rounded-[10px] border-[1.5px] border-line bg-white px-3 py-2.5 text-sm"
+            className="w-full rounded-[10px] border-[1.5px] border-line bg-card px-3 py-2.5 text-sm"
             rows={3}
             value={(form.specialSchemeRemarks ?? []).join('\n')}
             onChange={(e) => set('specialSchemeRemarks', e.target.value.split('\n').filter(Boolean))}

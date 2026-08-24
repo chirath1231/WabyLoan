@@ -2,10 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-ink-900: 10 46 42;
+  --color-ink-700: 19 78 72;
+  --color-teal-900: 0 53 47;
+  --color-teal-800: 0 69 61;
+  --color-teal-700: 0 105 92;
+  --color-teal-600: 12 133 119;
+  --color-teal-100: 220 239 236;
+  --color-teal-50: 242 248 247;
+  --color-paper: 247 249 248;
+  --color-card: 255 255 255;
+  --color-gold-700: 138 109 29;
+  --color-gold-600: 180 146 45;
+  --color-gold-100: 251 243 221;
+  --color-danger: 179 38 30;
+  --color-danger-100: 251 234 233;
+  --color-amber-700: 154 91 19;
+  --color-amber-100: 253 240 223;
+  --color-violet-700: 91 59 158;
+  --color-violet-100: 239 233 251;
+  --color-line: 228 233 231;
+  --color-text-900: 19 36 32;
+  --color-text-600: 75 97 92;
+  --color-text-400: 126 147 141;
+}
+
+.dark {
+  --color-ink-900: 10 46 42;
+  --color-ink-700: 19 78 72;
+  --color-teal-900: 120 235 213;
+  --color-teal-800: 86 224 199;
+  --color-teal-700: 29 178 155;
+  --color-teal-600: 45 191 169;
+  --color-teal-100: 18 51 48;
+  --color-teal-50: 15 38 36;
+  --color-paper: 10 20 18;
+  --color-card: 15 30 27;
+  --color-gold-700: 231 197 103;
+  --color-gold-600: 210 174 85;
+  --color-gold-100: 59 46 18;
+  --color-danger: 255 107 96;
+  --color-danger-100: 58 21 18;
+  --color-amber-700: 232 177 92;
+  --color-amber-100: 58 39 16;
+  --color-violet-700: 183 158 240;
+  --color-violet-100: 42 33 64;
+  --color-line: 31 51 47;
+  --color-text-900: 234 243 241;
+  --color-text-600: 159 184 178;
+  --color-text-400: 108 137 131;
+}
+
 body {
-  background: radial-gradient(1200px 500px at 100% -10%, rgba(12, 133, 119, 0.08), transparent), #f7f9f8;
-  color: #132420;
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-text-900));
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::selection {
@@ -18,6 +71,21 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c9d6d3;
+  background: rgb(var(--color-line));
   border-radius: 8px;
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bar-in {
+  animation: bar-in 0.28s ease-out both;
 }
