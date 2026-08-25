@@ -43,6 +43,23 @@ npm run dev:frontend    # http://localhost:3000
 
 Visit `http://localhost:3000` for the public wizard, `http://localhost:3000/admin` for the Admin Console (requires an admin-role account).
 
+## Deploying the frontend to Vercel
+
+`frontend` depends on the shared `@wabyloan/engine` workspace package, whose compiled `dist/` is git-ignored (built via `npm run build:engine`, not committed). A plain `next build` in an isolated `frontend` checkout won't find it, so `frontend/vercel.json` builds the engine first:
+
+```json
+{
+  "installCommand": "cd .. && npm install",
+  "buildCommand": "cd .. && npm run build:engine && cd frontend && npm run build"
+}
+```
+
+In the Vercel project settings:
+
+1. **Root Directory**: `frontend`
+2. **Framework Preset**: Next.js (install/build commands above override the defaults automatically via `vercel.json`)
+3. **Environment Variables**: set `API_BASE_URL` and `NEXT_PUBLIC_API_BASE_URL` to your deployed backend's URL (see `frontend/.env.local.example`) — `backend` itself is an Express + PostgreSQL API and needs to be hosted separately (e.g. Render, Railway, Fly.io), not on Vercel.
+
 ## Testing
 
 ```bash
