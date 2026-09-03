@@ -13,6 +13,7 @@ import { colors } from '../theme/colors';
 import { useWizard, DEFAULT_RETIREMENT } from '../context/WizardContext';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../api/client';
+import { buildContextLabel } from '../lib/context';
 
 const SECTOR_VALUES = ['government', 'semi_government', 'private', 'self_employed'];
 
@@ -59,7 +60,7 @@ export function Step2ProfileScreen({ navigation }) {
         </View>
       }
     >
-      <StepHeader step={2} title={t('step2.title')} subtitle={t('step2.subtitle')} />
+      <StepHeader step={2} title={t('step2.title')} subtitle={t('step2.subtitle')} context={buildContextLabel(state, t)} />
 
       <View style={{ gap: 12 }}>
         <Text style={styles.label}>{t('step2.sectorLabel')}</Text>

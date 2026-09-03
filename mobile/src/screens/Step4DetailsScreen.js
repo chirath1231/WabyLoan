@@ -12,6 +12,7 @@ import { colors } from '../theme/colors';
 import { useWizard } from '../context/WizardContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fmtLkr } from '../lib/format';
+import { buildContextLabel } from '../lib/context';
 
 export function Step4DetailsScreen({ navigation }) {
   const { state, setField } = useWizard();
@@ -34,7 +35,7 @@ export function Step4DetailsScreen({ navigation }) {
         </View>
       }
     >
-      <StepHeader step={4} title={t('step4.title')} subtitle={t('step4.subtitle')} />
+      <StepHeader step={4} title={t('step4.title')} subtitle={t('step4.subtitle')} context={buildContextLabel(state, t)} />
 
       {category === 'vehicle' && (
         <View style={{ gap: 16 }}>

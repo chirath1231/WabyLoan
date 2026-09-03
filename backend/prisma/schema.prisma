@@ -114,6 +114,16 @@ model Settings {
   @@map("settings")
 }
 
+/// Separate source of truth for admin access, decoupled from the general User record.
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("admins")
+}
+
 /// SRS §6.1 — auth records. A guest has no row here at all (isRestricted = !user).
 model User {
   id           String        @id @default(cuid())
@@ -121,12 +131,14 @@ model User {
   passwordHash String?
   name         String?
   role         UserRole      @default(user)
+  active       Boolean       @default(true)
   authProvider AuthProvider  @default(email)
   oauthId      String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   applications Application[]
   auditLogs    AuditLog[]
+  admin        Admin?
 
   @@unique([authProvider, oauthId])
   @@map("users")

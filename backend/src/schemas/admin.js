@@ -39,6 +39,11 @@ export const occupationWriteSchema = z.object({
 
 export const occupationUpdateSchema = occupationWriteSchema.partial();
 
+export const userUpdateSchema = z.object({
+  role: z.enum(['user', 'admin']).optional(),
+  active: z.boolean().optional(),
+});
+
 export const settingsUpdateSchema = z.object({
   dtiGovernment: z.number().int().min(10).max(90).optional(),
   dtiSemiGovernment: z.number().int().min(10).max(90).optional(),

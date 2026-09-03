@@ -22,6 +22,7 @@ export async function loginWithEmail(email, password) {
   if (!user || !user.passwordHash) throw new HttpError(401, 'Invalid email or password.');
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new HttpError(401, 'Invalid email or password.');
+  if (!user.active) throw new HttpError(403, 'This account has been deactivated.');
   return { user: toPublicUser(user), token: signToken({ sub: user.id, role: user.role }) };
 }
 
@@ -31,6 +32,7 @@ export async function upsertOAuthUser(provider, oauthId, email, name) {
     update: { email: email ?? undefined, name: name ?? undefined },
     create: { authProvider: provider, oauthId, email, name, role: 'user' },
   });
+  if (!user.active) throw new HttpError(403, 'This account has been deactivated.');
   return { user: toPublicUser(user), token: signToken({ sub: user.id, role: user.role }) };
 }
 

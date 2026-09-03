@@ -7,6 +7,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { GhostButton } from '../components/GhostButton';
 import { useWizard } from '../context/WizardContext';
 import { useLanguage } from '../context/LanguageContext';
+import { buildContextLabel } from '../lib/context';
 
 export function Step3IncomeScreen({ navigation }) {
   const { state, setField } = useWizard();
@@ -29,7 +30,7 @@ export function Step3IncomeScreen({ navigation }) {
         </View>
       }
     >
-      <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} />
+      <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} context={buildContextLabel(state, t)} />
 
       {isBusiness ? (
         <>

@@ -5,6 +5,7 @@ import occupationsRouter from './occupations.routes.js';
 import settingsRouter from './settings.routes.js';
 import leadsRouter from './leads.routes.js';
 import auditRouter from './audit.routes.js';
+import usersRouter from './users.routes.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/occupations', occupationsRouter);
 router.use('/settings', settingsRouter);
 router.use('/leads', leadsRouter);
 router.use('/audit-log', auditRouter);
+router.use('/users', usersRouter);
 
 export default router;

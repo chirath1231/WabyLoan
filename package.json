@@ -12,6 +12,7 @@
     "dev:frontend": "npm run dev --workspace=@wabyloan/frontend",
     "test:engine": "npm run test --workspace=@wabyloan/engine",
     "build:engine": "npm run build --workspace=@wabyloan/engine",
+    "build": "npm run build:engine",
     "db:migrate": "npm run db:migrate --workspace=@wabyloan/backend",
     "db:seed": "npm run db:seed --workspace=@wabyloan/backend"
   },

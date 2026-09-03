@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 
 const STEP_COUNT = 5;
 
-export function StepHeader({ step, title, subtitle }) {
+export function StepHeader({ step, title, subtitle, context }) {
   return (
     <View style={styles.wrap}>
       {step ? (
@@ -16,6 +16,11 @@ export function StepHeader({ step, title, subtitle }) {
       ) : null}
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {context ? (
+        <View style={styles.contextChip}>
+          <Text style={styles.contextChipText}>{context}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -47,5 +52,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text600,
     lineHeight: 20,
+  },
+  contextChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.teal50,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  contextChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.teal800,
   },
 });

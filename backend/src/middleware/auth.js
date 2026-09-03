@@ -1,4 +1,5 @@
 import { verifyToken } from '../auth/jwt.js';
+import { prisma } from '../db/prisma.js';
 
 function extractToken(req) {
   const header = req.headers.authorization;
@@ -33,8 +34,12 @@ export function authenticate(req, res, next) {
   }
 }
 
-export function requireAdmin(req, res, next) {
-  if (!req.authUser || req.authUser.role !== 'admin') {
+// Re-checks the DB (rather than trusting the JWT's role claim alone) so a demoted or deactivated
+// admin loses console access immediately instead of waiting out the token's remaining lifetime.
+export async function requireAdmin(req, res, next) {
+  if (!req.authUser) return res.status(403).json({ error: 'Admin access required.' });
+  const user = await prisma.user.findUnique({ where: { id: req.authUser.id } });
+  if (!user || user.role !== 'admin' || !user.active) {
     return res.status(403).json({ error: 'Admin access required.' });
   }
   next();

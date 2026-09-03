@@ -9,18 +9,21 @@ export function Select({
   onChange,
   options,
   placeholder,
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
-    <RadixSelect.Root value={value} onValueChange={onChange}>
+    <RadixSelect.Root value={value} onValueChange={onChange} disabled={disabled}>
       <RadixSelect.Trigger
         className={cn(
           'flex w-full items-center justify-between rounded-[10px] border-[1.5px] border-line bg-card px-3 py-2.5 text-sm',
           'focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 data-[placeholder]:text-text-400',
+          'disabled:cursor-not-allowed disabled:opacity-50',
         )}
       >
         <RadixSelect.Value placeholder={placeholder} />

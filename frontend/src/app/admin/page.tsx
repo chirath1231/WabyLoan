@@ -5,6 +5,7 @@ const CARDS = [
   { href: '/admin/occupations', title: 'Occupations', desc: 'Edit the profession list and dual-scheme eligibility flags.' },
   { href: '/admin/settings', title: 'Settings', desc: 'DTI thresholds, discounts, rounding step, feature flags.' },
   { href: '/admin/leads', title: 'Leads', desc: 'Full consultation leads and callback requests.' },
+  { href: '/admin/users', title: 'Users', desc: 'View registered users, change roles, deactivate accounts.' },
   { href: '/admin/audit-log', title: 'Audit Log', desc: 'Every admin mutation, who changed what and when.' },
 ];
 

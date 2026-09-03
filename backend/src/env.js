@@ -24,6 +24,7 @@ export const env = {
     callbackUrl: process.env.FACEBOOK_CALLBACK_URL ?? '',
   },
   ocrProvider: process.env.OCR_PROVIDER ?? 'mock',
+  geminiApiKey: process.env.GEMINI_API_KEY ?? '',
 };
 
 export const oauthEnabled = {
