@@ -6,7 +6,7 @@ AI-assisted loan eligibility and bank comparison platform for the Sri Lankan len
 
 ```
 packages/engine/   @wabyloan/engine — shared TypeScript calculation engine (EMI, ranking, dual-scheme logic)
-backend/            Express + PostgreSQL (Prisma) API — the one shared backend for web AND the future mobile app
+backend/            Express + PostgreSQL (raw SQL via `pg`) API — the one shared backend for web AND the future mobile app
 frontend/            Next.js web app — public 5-step wizard + the web-only Admin Console
 mobile/              Not yet built (planned follow-up phase, reuses the same engine + API)
 ```

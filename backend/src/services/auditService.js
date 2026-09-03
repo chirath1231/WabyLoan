@@ -1,4 +1,5 @@
-import { prisma } from '../db/prisma.js';
+import { query } from '../db/pool.js';
+import { newId } from '../lib/id.js';
 
 function toAuditString(v) {
   if (v === null || v === undefined) return null;
@@ -6,13 +7,8 @@ function toAuditString(v) {
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   if (v instanceof Date) return v.toISOString();
   if (Array.isArray(v)) return JSON.stringify(v);
-  // Prisma Decimal (and similar wrapper objects) expose a meaningful toString() — using it
-  // (instead of JSON.stringify, which would quote it as a string) keeps a Decimal "0.5" and the
-  // plain number 0.5 comparing equal, so saving a form without touching a rate field doesn't
-  // spuriously log it as changed.
-  if (typeof v === 'object' && typeof v.toString === 'function' && v.toString !== Object.prototype.toString) {
-    return v.toString();
-  }
+  // Postgres numeric columns come back as strings, so no Decimal-like wrapper to special-case here
+  // (unlike the old Prisma Decimal) — falling through to JSON.stringify is enough for plain objects.
   return JSON.stringify(v);
 }
 
@@ -20,16 +16,20 @@ function toAuditString(v) {
 export async function recordAudit(adminUserId, entityType, entityId, changes) {
   const actual = changes.filter((c) => toAuditString(c.oldValue) !== toAuditString(c.newValue));
   if (actual.length === 0) return;
-  await prisma.auditLog.createMany({
-    data: actual.map((c) => ({
-      adminUserId,
-      entityType,
-      entityId,
-      field: c.field,
-      oldValue: toAuditString(c.oldValue),
-      newValue: toAuditString(c.newValue),
-    })),
+
+  const cols = 7;
+  const values = [];
+  const rowPlaceholders = actual.map((c, i) => {
+    const o = i * cols;
+    values.push(newId(), adminUserId, entityType, entityId, c.field, toAuditString(c.oldValue), toAuditString(c.newValue));
+    return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, $${o + 6}, $${o + 7})`;
   });
+
+  await query(
+    `INSERT INTO audit_log (id, "adminUserId", "entityType", "entityId", field, "oldValue", "newValue")
+     VALUES ${rowPlaceholders.join(', ')}`,
+    values,
+  );
 }
 
 /** Diffs two plain objects field-by-field and returns the AuditFieldChange list for recordAudit. */

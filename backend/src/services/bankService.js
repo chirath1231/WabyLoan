@@ -1,27 +1,37 @@
-import { prisma } from '../db/prisma.js';
+import { query } from '../db/pool.js';
+import { buildInsert, buildUpdate } from '../lib/sql.js';
+import { newId } from '../lib/id.js';
 import { diffFields, recordAudit } from './auditService.js';
 
-export function listActiveBanks() {
-  return prisma.bank.findMany({ where: { active: true }, orderBy: { name: 'asc' } });
+export async function listActiveBanks() {
+  const { rows } = await query('SELECT * FROM banks WHERE active = true ORDER BY name ASC');
+  return rows;
 }
 
-export function listAllBanks() {
-  return prisma.bank.findMany({ orderBy: { name: 'asc' } });
+export async function listAllBanks() {
+  const { rows } = await query('SELECT * FROM banks ORDER BY name ASC');
+  return rows;
 }
 
-export function getBank(id) {
-  return prisma.bank.findUnique({ where: { id } });
+export async function getBank(id) {
+  const { rows } = await query('SELECT * FROM banks WHERE id = $1', [id]);
+  return rows[0] ?? null;
 }
 
-export function createBank(data) {
-  return prisma.bank.create({ data });
+export async function createBank(data) {
+  const { text, values } = buildInsert('banks', { id: newId(), ...data });
+  const { rows } = await query(text, values);
+  return rows[0];
 }
 
 export async function updateBank(id, data, adminUserId) {
-  const before = await prisma.bank.findUniqueOrThrow({ where: { id } });
-  const updated = await prisma.bank.update({ where: { id }, data });
+  const { rows: beforeRows } = await query('SELECT * FROM banks WHERE id = $1', [id]);
+  const before = beforeRows[0];
+  if (!before) throw new Error(`No bank record found for id ${id}`);
+  const { text, values } = buildUpdate('banks', id, data);
+  const { rows } = await query(text, values);
   await recordAudit(adminUserId, 'bank', id, diffFields(before, data));
-  return updated;
+  return rows[0];
 }
 
 /** No delete endpoint exists — Active/Inactive toggle only, a deliberate SRS decision (Appendix C.6). */

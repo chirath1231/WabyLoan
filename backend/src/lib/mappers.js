@@ -1,4 +1,4 @@
-/** Maps a Prisma Bank row to the shape @wabyloan/engine expects (Decimal -> number, etc). */
+/** Maps a raw `banks` row to the shape @wabyloan/engine expects (numeric string -> number, etc). */
 export function mapBank(b) {
   return {
     id: b.id,

@@ -1,5 +1,5 @@
 import { verifyToken } from '../auth/jwt.js';
-import { prisma } from '../db/prisma.js';
+import { query } from '../db/pool.js';
 
 function extractToken(req) {
   const header = req.headers.authorization;
@@ -38,7 +38,8 @@ export function authenticate(req, res, next) {
 // admin loses console access immediately instead of waiting out the token's remaining lifetime.
 export async function requireAdmin(req, res, next) {
   if (!req.authUser) return res.status(403).json({ error: 'Admin access required.' });
-  const user = await prisma.user.findUnique({ where: { id: req.authUser.id } });
+  const { rows } = await query('SELECT role, active FROM users WHERE id = $1', [req.authUser.id]);
+  const user = rows[0];
   if (!user || user.role !== 'admin' || !user.active) {
     return res.status(403).json({ error: 'Admin access required.' });
   }

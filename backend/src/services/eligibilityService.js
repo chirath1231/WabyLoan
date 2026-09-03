@@ -1,5 +1,7 @@
 import { runEligibilityEngine } from '@wabyloan/engine';
-import { prisma } from '../db/prisma.js';
+import { query } from '../db/pool.js';
+import { buildInsert } from '../lib/sql.js';
+import { newId } from '../lib/id.js';
 import { mapBank, mapOccupation, mapSettings } from '../lib/mappers.js';
 import { listActiveBanks } from './bankService.js';
 import { listOccupations } from './occupationService.js';
@@ -20,20 +22,20 @@ export async function evaluateEligibility(input, user) {
 
   let applicationId = null;
   if (user) {
-    const application = await prisma.application.create({
-      data: {
-        userId: user.id,
-        loanCategory: input.applicant.loanCategory,
-        sector: input.applicant.sector,
-        occupationId: input.applicant.occupationId,
-        age: input.applicant.age,
-        retirementAge: input.applicant.retirementAge,
-        incomeProfile: input.income,
-        categoryDetails: input.categoryDetails,
-        resultsSnapshot: outputResult,
-      },
+    const { text, values } = buildInsert('applications', {
+      id: newId(),
+      userId: user.id,
+      loanCategory: input.applicant.loanCategory,
+      sector: input.applicant.sector,
+      occupationId: input.applicant.occupationId,
+      age: input.applicant.age,
+      retirementAge: input.applicant.retirementAge,
+      incomeProfile: input.income,
+      categoryDetails: input.categoryDetails,
+      resultsSnapshot: outputResult,
     });
-    applicationId = application.id;
+    const { rows } = await query(text, values);
+    applicationId = rows[0].id;
   }
 
   return { restricted, engineResult: outputResult, applicationId };

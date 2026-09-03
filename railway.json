@@ -2,10 +2,10 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm run build:engine && npm run db:generate --workspace=@wabyloan/backend"
+    "buildCommand": "npm run build:engine"
   },
   "deploy": {
-    "startCommand": "npm run start --workspace=@wabyloan/backend",
+    "startCommand": "npm run db:migrate --workspace=@wabyloan/backend && npm run start --workspace=@wabyloan/backend",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
