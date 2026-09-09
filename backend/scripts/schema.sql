@@ -1,6 +1,24 @@
 -- Plain-SQL schema for WabyLoan (replaces Prisma migrations). Safe to re-run: every statement is
 -- idempotent, so this can run on every deploy without touching data in tables that already exist.
 
+-- Tables created under the old Prisma migrations relied on Prisma's application-layer @updatedAt
+-- handling and were never given a DB-level default for "updatedAt". Our raw-SQL buildInsert() never
+-- sets that column explicitly, so every INSERT into these pre-existing tables violates the NOT NULL
+-- constraint (e.g. registering a user, adding a bank/occupation). ALTER COLUMN ... SET DEFAULT is a
+-- no-op if already set, so this block is safe to run on every deploy alongside the rest of this file.
+DO $$ BEGIN
+  ALTER TABLE users ALTER COLUMN "updatedAt" SET DEFAULT now();
+EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  ALTER TABLE banks ALTER COLUMN "updatedAt" SET DEFAULT now();
+EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  ALTER TABLE occupations ALTER COLUMN "updatedAt" SET DEFAULT now();
+EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  ALTER TABLE settings ALTER COLUMN "updatedAt" SET DEFAULT now();
+EXCEPTION WHEN undefined_table THEN null; END $$;
+
 DO $$ BEGIN
   CREATE TYPE "BankType" AS ENUM ('bank', 'finance');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
