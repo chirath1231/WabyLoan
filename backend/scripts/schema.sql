@@ -25,6 +25,30 @@ DO $$ BEGIN
   CREATE TYPE "AuthProvider" AS ENUM ('email', 'google', 'facebook');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
+DO $$ BEGIN
+  CREATE TYPE "LoanProductCategory" AS ENUM ('personal', 'housing', 'vehicle_leasing', 'education', 'business', 'pensioner');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "DocChargeBasis" AS ENUM ('pct_of_loan', 'fixed_amount');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "GenderEligibility" AS ENUM ('any', 'male_only', 'female_only');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "InterestRateType" AS ENUM ('fixed', 'variable', 'reducing_balance', 'flat');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CollateralType" AS ENUM ('none', 'vehicle', 'property', 'fixed_deposit');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "InsuranceType" AS ENUM ('none', 'life', 'asset', 'both');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
 -- SRS Appendix B.1 — one row per bank/finance-company product record.
 CREATE TABLE IF NOT EXISTS banks (
   id TEXT PRIMARY KEY,
@@ -54,6 +78,79 @@ CREATE TABLE IF NOT EXISTS banks (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT now(),
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT now()
 );
+
+-- Admin panel "Loan Products" — one row per named product offered by a bank (Waby Loan Product
+-- Field Specification pack). Many products per bank; independent of the `banks` scheme fields
+-- above, which still drive the public eligibility engine unchanged.
+CREATE TABLE IF NOT EXISTS loan_products (
+  id TEXT PRIMARY KEY,
+  "bankId" TEXT NOT NULL REFERENCES banks(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  category "LoanProductCategory" NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+
+  -- Income & repayment capacity
+  "repaymentCapacityBasePct" DECIMAL(5, 2) NOT NULL,
+  "otIncomeIncluded" BOOLEAN NOT NULL DEFAULT false,
+  "otAveragingPeriodMonths" INTEGER,
+  "otherIncomeConsidered" BOOLEAN NOT NULL DEFAULT false,
+  "otherIncomeTypesAllowed" TEXT[] NOT NULL DEFAULT '{}',
+
+  -- Tenure, loan amount & repayment period ranges
+  "loanTenureMinMonths" INTEGER NOT NULL,
+  "loanTenureMaxMonths" INTEGER NOT NULL,
+  "loanAmountMin" INTEGER NOT NULL,
+  "loanAmountMax" INTEGER NOT NULL,
+  "repaymentPeriodMinMonths" INTEGER NOT NULL,
+  "repaymentPeriodMaxMonths" INTEGER NOT NULL,
+
+  -- Documentation charge
+  "docChargeBasis" "DocChargeBasis" NOT NULL,
+  "docChargeValue" DECIMAL(10, 2) NOT NULL,
+  "docChargeMin" INTEGER NOT NULL,
+  "docChargeMax" INTEGER NOT NULL,
+
+  -- Eligibility
+  "eligibleSectors" TEXT[] NOT NULL DEFAULT '{}',
+  "eligibleCompaniesListRequired" BOOLEAN NOT NULL DEFAULT false,
+  "eligibleCompaniesReference" TEXT,
+  "commonLoanOpenToAll" BOOLEAN NOT NULL DEFAULT false,
+  "genderEligibility" "GenderEligibility" NOT NULL DEFAULT 'any',
+  "ageMin" INTEGER NOT NULL,
+  "ageMaxAtMaturity" INTEGER NOT NULL,
+
+  -- Early settlement & leasing balloon payment
+  "earlySettlementAllowed" BOOLEAN NOT NULL DEFAULT true,
+  "earlySettlementChargePct" DECIMAL(5, 2),
+  "balloonPaymentAllowed" BOOLEAN,
+  "balloonPaymentPct" DECIMAL(5, 2),
+
+  -- Rate & term
+  "interestRateType" "InterestRateType" NOT NULL,
+  "interestRatePct" DECIMAL(5, 2) NOT NULL,
+  "minEmploymentPeriodMonths" INTEGER NOT NULL,
+  "minNetMonthlyIncome" INTEGER NOT NULL,
+
+  -- Guarantor / collateral / insurance
+  "guarantorCount" INTEGER NOT NULL DEFAULT 0,
+  "collateralType" "CollateralType" NOT NULL DEFAULT 'none',
+  "insuranceType" "InsuranceType" NOT NULL DEFAULT 'none',
+
+  -- Penalties, SLA & bank conditions
+  "latePaymentPenaltyPct" DECIMAL(5, 2) NOT NULL,
+  "gracePeriodDays" INTEGER NOT NULL DEFAULT 0,
+  "processingTimeDays" INTEGER NOT NULL,
+  "cribCheckRequired" BOOLEAN NOT NULL DEFAULT true,
+  "salaryCreditedToBank" BOOLEAN NOT NULL DEFAULT false,
+  "coApplicantAllowed" BOOLEAN NOT NULL DEFAULT false,
+  "topUpLoanAllowedAfterMonths" INTEGER,
+  currency TEXT NOT NULL DEFAULT 'LKR',
+
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT now(),
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS "loan_products_bankId_idx" ON loan_products ("bankId");
 
 -- SRS Appendix B.2 — admin-editable profession list, drives Step 2 dropdown + dual-scheme gating.
 CREATE TABLE IF NOT EXISTS occupations (
