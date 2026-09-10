@@ -10,7 +10,7 @@ async function main() {
   await pool.query(sql);
   console.log('Database schema is up to date.');
 }
-
+//;;;;
 main()
   .catch((err) => {
     console.error(err);
