@@ -11,6 +11,7 @@ async function main() {
   console.log('Database schema is up to date.');
 }
 //;;;;
+
 main()
   .catch((err) => {
     console.error(err);
