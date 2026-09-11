@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/Badge';
 
 const SECTORS: Sector[] = ['government', 'semi_government', 'private', 'self_employed'];
 const DEFAULT_RETIREMENT: Record<Sector, number> = { government: 60, semi_government: 60, private: 60, self_employed: 65 };
-const PENSION_MAX_LOAN_AGE_DEFAULT = 80;
 
 export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; onBack: () => void }) {
   const { t } = useTranslation();
@@ -23,22 +22,15 @@ export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; o
   const setField = useWizardStore((s) => s.setField);
   const { data: occupations = [] } = useOccupations();
 
-  const isPension = state.loanCategory === 'pension';
-
   useEffect(() => {
-    if (state.retirementAgeCustom) return;
-    if (isPension) {
-      setField('retirementAge', PENSION_MAX_LOAN_AGE_DEFAULT);
-    } else if (state.sector) {
+    if (state.sector && !state.retirementAgeCustom) {
       setField('retirementAge', DEFAULT_RETIREMENT[state.sector]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.sector, isPension]);
+  }, [state.sector]);
 
-  const maxApplicantAge = isPension ? 85 : 70;
-  const ageValid = state.age !== null && state.age >= 18 && state.age <= maxApplicantAge;
-  const retirementValid =
-    state.retirementAge !== null && state.retirementAge >= 18 && state.retirementAge <= (isPension ? 90 : 75);
+  const ageValid = state.age !== null && state.age >= 18 && state.age <= 70;
+  const retirementValid = state.retirementAge !== null && state.retirementAge >= 18 && state.retirementAge <= 75;
   const bothValid = ageValid && retirementValid;
   const maxTenure = bothValid ? state.retirementAge! - state.age! : null;
   const retirementReached = maxTenure !== null && maxTenure <= 0;
@@ -100,13 +92,13 @@ export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; o
             onChange={(e) => setField('age', e.target.value === '' ? null : Number(e.target.value))}
             invalid={state.age !== null && !ageValid}
           />
-          {state.age !== null && !ageValid && <Hint tone="danger">Age must be between 18 and {maxApplicantAge}.</Hint>}
+          {state.age !== null && !ageValid && <Hint tone="danger">Age must be between 18 and 70.</Hint>}
         </div>
         <div>
-          <Label>{isPension ? 'Max loan age' : 'Expected retirement age'}</Label>
+          <Label>Expected retirement age</Label>
           <TextInput
             type="number"
-            placeholder={isPension ? 'Auto-filled (80)' : 'Auto-filled from sector'}
+            placeholder="Auto-filled from sector"
             value={state.retirementAge ?? ''}
             onChange={(e) => {
               setField('retirementAgeCustom', true);
