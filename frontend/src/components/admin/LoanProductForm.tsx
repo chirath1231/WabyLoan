@@ -19,7 +19,11 @@ const CATEGORIES = [
 
 const OTHER_INCOME_TYPES = ['Rental', 'Business', 'Foreign Remittance', 'Pension', 'Allowances'];
 
-const SECTOR_OPTIONS = ['Government', 'Semi-Government', 'Private', 'Doctor', 'Nurse', 'Any Professional', 'Self-Employed'];
+// Aligned with the canonical Sector enum (matches BankForm's sector checkboxes) rather than
+// mixing in occupation-like labels — per-occupation product targeting isn't a supported concept
+// yet (the eligibility engine doesn't consume this field at all today; it's admin-editable
+// metadata only).
+const SECTOR_OPTIONS = ['Government', 'Semi-Government', 'Private', 'Self-Employed'];
 
 const DOC_CHARGE_BASIS = [
   { value: 'pct_of_loan', label: '% of loan' },
