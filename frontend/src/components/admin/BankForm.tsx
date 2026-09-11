@@ -55,7 +55,19 @@ const DEFAULTS: Partial<AdminBank> = {
   updatedDate: new Date().toISOString().slice(0, 10),
 };
 
-export function BankForm({ initial, onSave, onCancel, saving }: { initial?: AdminBank; onSave: (data: Partial<AdminBank>) => void; onCancel: () => void; saving?: boolean }) {
+export function BankForm({
+  initial,
+  onSave,
+  onCancel,
+  saving,
+  saveError,
+}: {
+  initial?: AdminBank;
+  onSave: (data: Partial<AdminBank>) => void;
+  onCancel: () => void;
+  saving?: boolean;
+  saveError?: string | null;
+}) {
   const [form, setForm] = useState<Partial<AdminBank>>({ ...DEFAULTS, ...initial });
   const [error, setError] = useState<string | null>(null);
 
@@ -208,6 +220,7 @@ export function BankForm({ initial, onSave, onCancel, saving }: { initial?: Admi
         </div>
       </section>
 
+      {saveError && <Hint tone="danger">{saveError}</Hint>}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>
           Cancel

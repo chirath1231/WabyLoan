@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { balanceAfterPayments, buildAmortizationSchedule, type EligibilityResult, type LoanCategory } from '@wabyloan/engine';
-import { CheckCircle2, MessageCircle } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Printer } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Tabs, TabPanel } from '@/components/ui/Tabs';
 import { StatTile } from '@/components/ui/Card';
@@ -162,10 +162,19 @@ export function BankDetailModal({
           </div>
         </TabPanel>
 
-        <TabPanel value="amortization">
-          <div className="max-h-[50vh] overflow-auto rounded-xl2 border border-line">
+        <TabPanel value="amortization" className="space-y-3">
+          <div className="flex justify-end">
+            <Button variant="ghost" onClick={() => window.print()}>
+              <Printer size={14} /> Print / Save PDF
+            </Button>
+          </div>
+          <div id="print-amortization" className="max-h-[50vh] overflow-auto rounded-xl2 border border-line print:max-h-none print:overflow-visible print:border-0">
+            <p className="hidden px-1 pb-2 font-display text-sm font-bold text-text-900 print:block">
+              {result.bankName}
+              {result.variantLabel ? ` (${result.variantLabel})` : ''} — Amortization Schedule
+            </p>
             <table className="w-full min-w-[560px] border-collapse text-sm">
-              <thead className="sticky top-0 bg-teal-50 text-[11px] uppercase text-text-600">
+              <thead className="sticky top-0 bg-teal-50 text-[11px] uppercase text-text-600 print:static">
                 <tr>
                   <th className="px-3 py-2 text-center">Year</th>
                   <th className="px-3 py-2 text-right">Monthly Payment</th>

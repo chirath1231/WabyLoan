@@ -87,6 +87,8 @@ export default function AdminSettingsPage() {
         <Switch checked={!!form.businessLoanEnabled} onCheckedChange={(v) => set('businessLoanEnabled', v)} label="Business Loan category enabled" />
       </section>
 
+      {update.isError && <Hint tone="danger">Couldn&apos;t save settings — try again.</Hint>}
+      {reset.isError && <Hint tone="danger">Reset failed — try again.</Hint>}
       <div className="flex items-center justify-between">
         <Button onClick={save} disabled={update.isPending}>
           Save Settings

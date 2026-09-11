@@ -21,6 +21,7 @@ export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; o
   const state = useWizardStore();
   const setField = useWizardStore((s) => s.setField);
   const { data: occupations = [] } = useOccupations();
+  const selectedOccupation = occupations.find((o) => o.id === state.occupationId);
 
   useEffect(() => {
     if (state.sector && !state.retirementAgeCustom) {
@@ -78,9 +79,54 @@ export function Step2Profile({ onContinue, onBack }: { onContinue: () => void; o
               <Hint>Used for lead quality only — does not affect your eligibility calculation.</Hint>
             </div>
           )}
+          {selectedOccupation?.isSpecialSchemeEligible && (
+            <div className="mt-2 rounded-lg border border-violet-100 bg-violet-100/40 p-3 text-[12.5px] text-violet-700">
+              Your profession may qualify for an automatic Professional Scheme discount — we&apos;ll compare both the
+              general and professional rates for you.
+            </div>
+          )}
         </div>
-        <div />
+        <div>
+          <Label>Gender (optional)</Label>
+          <div className="flex gap-2">
+            {(['male', 'female'] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setField('gender', state.gender === g ? null : g)}
+                className={`rounded-lg border px-4 py-2 text-[13px] font-semibold capitalize transition-colors ${
+                  state.gender === g ? 'border-teal-700 bg-teal-700 text-white' : 'border-line text-text-600 hover:border-teal-600'
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+          <Hint>Only used to surface gender-specific loan schemes, if any.</Hint>
+        </div>
       </section>
+
+      {state.sector !== 'self_employed' && (
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Employer name (optional)</Label>
+            <TextInput
+              placeholder="e.g. Acme Holdings (Pvt) Ltd"
+              value={state.employerName}
+              onChange={(e) => setField('employerName', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Time in current job, months (optional)</Label>
+            <TextInput
+              type="number"
+              placeholder="e.g. 24"
+              value={state.employmentMonths ?? ''}
+              onChange={(e) => setField('employmentMonths', e.target.value === '' ? null : Number(e.target.value))}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>

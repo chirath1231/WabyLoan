@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { TextInput } from '@/components/ui/Field';
 import { LoanProductForm } from '@/components/admin/LoanProductForm';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -22,12 +23,19 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function AdminLoanProductsPage() {
   const { data: banks = [] } = useAdminBanks();
   const [bankFilter, setBankFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
   const { data: products = [], isLoading } = useAdminLoanProducts(bankFilter === 'all' ? undefined : bankFilter);
   const createProduct = useCreateLoanProduct();
   const updateProduct = useUpdateLoanProduct();
   const [editing, setEditing] = useState<AdminLoanProduct | 'new' | null>(null);
 
   const bankName = (id: string) => banks.find((b) => b.id === id)?.name ?? id;
+
+  const filteredProducts = products.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return p.name.toLowerCase().includes(q) || bankName(p.bankId).toLowerCase().includes(q);
+  });
 
   function handleSave(data: Partial<AdminLoanProduct>) {
     if (editing === 'new') {
@@ -46,12 +54,15 @@ export default function AdminLoanProductsPage() {
         </Button>
       </div>
 
-      <div className="mb-4 max-w-xs">
-        <Select
-          value={bankFilter}
-          onChange={setBankFilter}
-          options={[{ value: 'all', label: 'All Banks' }, ...banks.map((b) => ({ value: b.id, label: b.name }))]}
-        />
+      <div className="mb-4 flex flex-wrap gap-3">
+        <TextInput placeholder="Search by product or bank name…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+        <div className="max-w-xs">
+          <Select
+            value={bankFilter}
+            onChange={setBankFilter}
+            options={[{ value: 'all', label: 'All Banks' }, ...banks.map((b) => ({ value: b.id, label: b.name }))]}
+          />
+        </div>
       </div>
 
       {isLoading ? (
@@ -70,7 +81,7 @@ export default function AdminLoanProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {filteredProducts.map((p) => (
                 <tr key={p.id} className="border-t border-line">
                   <td className="px-4 py-2.5 text-text-600">{bankName(p.bankId)}</td>
                   <td className="px-4 py-2.5 font-semibold text-text-900">{p.name}</td>
@@ -86,10 +97,10 @@ export default function AdminLoanProductsPage() {
                   </td>
                 </tr>
               ))}
-              {products.length === 0 && (
+              {filteredProducts.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-center text-text-400">
-                    No loan products yet.
+                    {products.length === 0 ? 'No loan products yet.' : 'No loan products match this search.'}
                   </td>
                 </tr>
               )}
@@ -105,6 +116,7 @@ export default function AdminLoanProductsPage() {
             onSave={handleSave}
             onCancel={() => setEditing(null)}
             saving={createProduct.isPending || updateProduct.isPending}
+            saveError={createProduct.isError || updateProduct.isError ? "Couldn't save — try again." : null}
           />
         </Modal>
       )}

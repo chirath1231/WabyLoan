@@ -24,6 +24,9 @@ export interface WizardState {
   retirementAgeCustom: boolean;
   jointApplicant: boolean;
   coApplicantIncome: number;
+  gender: 'male' | 'female' | null;
+  employerName: string;
+  employmentMonths: number | null;
 
   incomeMode: 'ocr' | 'manual';
   ocrItems: IncomeItemState[];
@@ -57,6 +60,7 @@ export interface WizardState {
   restricted: boolean;
   applicationId: string | null;
   selectedVariantKey: string | null;
+  compareSelection: string[];
 
   setStep: (step: number) => void;
   setField: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void;
@@ -76,6 +80,9 @@ const initialState = {
   retirementAgeCustom: false,
   jointApplicant: false,
   coApplicantIncome: 0,
+  gender: null,
+  employerName: '',
+  employmentMonths: null,
 
   incomeMode: 'manual' as const,
   ocrItems: [],
@@ -109,6 +116,7 @@ const initialState = {
   restricted: false,
   applicationId: null,
   selectedVariantKey: null,
+  compareSelection: [],
 };
 
 export const useWizardStore = create<WizardState>((set) => ({

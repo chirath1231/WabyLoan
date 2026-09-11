@@ -14,6 +14,10 @@ import { Slider } from '@/components/ui/Slider';
 import { Label } from '@/components/ui/Field';
 import { CallbackForm } from './CallbackForm';
 import { BankDetailModal } from './BankDetailModal';
+import { CompareBar } from './CompareBar';
+import { CompareModal } from './CompareModal';
+
+const MAX_COMPARE = 3;
 
 const TERM_BOUNDS: Record<string, [number, number]> = {
   personal: [1, 8],
@@ -28,11 +32,17 @@ function BankCard({
   rank,
   restricted,
   onView,
+  compareChecked,
+  compareDisabled,
+  onToggleCompare,
 }: {
   result: EligibilityResult;
   rank?: number;
   restricted: boolean;
   onView: () => void;
+  compareChecked?: boolean;
+  compareDisabled?: boolean;
+  onToggleCompare?: () => void;
 }) {
   const { t } = useTranslation();
   const isBest = rank === 1;
@@ -90,15 +100,33 @@ function BankCard({
               Term shown at {result.termYears}yr ({result.termCapReason})
             </p>
           )}
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-2">
             {blurred ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-line py-2.5 text-[13px] font-semibold text-text-400">
+              <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-line py-2.5 text-[13px] font-semibold text-text-400">
                 <Lock size={14} /> Sign up to unlock
               </div>
             ) : (
-              <Button variant="ghost" onClick={onView} className="w-full justify-center">
-                {t('viewDetails')}
-              </Button>
+              <>
+                <Button variant="ghost" onClick={onView} className="flex-1 justify-center">
+                  {t('viewDetails')}
+                </Button>
+                {onToggleCompare && (
+                  <label
+                    className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 text-[12.5px] font-semibold ${
+                      compareChecked ? 'border-teal-700 text-teal-700' : 'border-line text-text-600'
+                    } ${compareDisabled && !compareChecked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 accent-teal-700"
+                      checked={!!compareChecked}
+                      disabled={compareDisabled && !compareChecked}
+                      onChange={onToggleCompare}
+                    />
+                    Compare
+                  </label>
+                )}
+              </>
             )}
           </div>
         </>
@@ -114,6 +142,17 @@ export function Step5Results({ onBack }: { onBack: () => void }) {
   const evaluate = useEvaluateEligibility();
   const [selected, setSelected] = useState<EligibilityResult | null>(null);
   const [term, setTerm] = useState(state.requestedTermYears);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  function toggleCompare(variantKey: string) {
+    const current = state.compareSelection;
+    const next = current.includes(variantKey)
+      ? current.filter((k) => k !== variantKey)
+      : current.length < MAX_COMPARE
+        ? [...current, variantKey]
+        : current;
+    setField('compareSelection', next);
+  }
 
   const bounds = TERM_BOUNDS[state.loanCategory ?? 'personal'] ?? [1, 8];
 
@@ -136,6 +175,7 @@ export function Step5Results({ onBack }: { onBack: () => void }) {
   const results = state.engineResult?.results ?? [];
   const eligible = results.filter((r) => !r.ineligible);
   const ineligible = results.filter((r) => r.ineligible);
+  const compareResults = eligible.filter((r) => state.compareSelection.includes(r.variantKey));
 
   const sponsoredSeen = new Set<string>();
   const sponsoredStrip = state.restricted
@@ -147,7 +187,7 @@ export function Step5Results({ onBack }: { onBack: () => void }) {
       });
 
   return (
-    <div className="fade-in space-y-6">
+    <div className={`fade-in space-y-6 ${compareResults.length > 0 ? 'pb-20' : ''}`}>
       <div>
         <h1 className="font-display text-2xl font-bold text-text-900">{t('step5Title')}</h1>
       </div>
@@ -185,7 +225,16 @@ export function Step5Results({ onBack }: { onBack: () => void }) {
 
       <div className="space-y-3">
         {eligible.map((r, i) => (
-          <BankCard key={r.variantKey} result={r} rank={i + 1} restricted={state.restricted} onView={() => setSelected(r)} />
+          <BankCard
+            key={r.variantKey}
+            result={r}
+            rank={i + 1}
+            restricted={state.restricted}
+            onView={() => setSelected(r)}
+            compareChecked={state.compareSelection.includes(r.variantKey)}
+            compareDisabled={state.compareSelection.length >= MAX_COMPARE}
+            onToggleCompare={state.restricted ? undefined : () => toggleCompare(r.variantKey)}
+          />
         ))}
       </div>
 
@@ -207,6 +256,15 @@ export function Step5Results({ onBack }: { onBack: () => void }) {
       {selected && !state.restricted && (
         <BankDetailModal result={selected} loanCategory={state.loanCategory!} applicationId={state.applicationId} onClose={() => setSelected(null)} />
       )}
+
+      {!state.restricted && (
+        <CompareBar
+          count={compareResults.length}
+          onCompare={() => setCompareOpen(true)}
+          onClear={() => setField('compareSelection', [])}
+        />
+      )}
+      {compareOpen && compareResults.length > 0 && <CompareModal results={compareResults} onClose={() => setCompareOpen(false)} />}
     </div>
   );
 }

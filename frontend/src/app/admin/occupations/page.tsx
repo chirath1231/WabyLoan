@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { useAdminOccupations, useCreateOccupation, useUpdateOccupation } from '@/hooks/useAdminOccupations';
 import { Switch } from '@/components/ui/Switch';
 import { Button } from '@/components/ui/Button';
-import { TextInput } from '@/components/ui/Field';
+import { TextInput, Hint } from '@/components/ui/Field';
 
 export default function AdminOccupationsPage() {
   const { data: occupations = [], isLoading } = useAdminOccupations();
@@ -64,6 +64,7 @@ export default function AdminOccupationsPage() {
           <Plus size={15} /> Add
         </Button>
       </div>
+      {(createOcc.isError || updateOcc.isError) && <Hint tone="danger">Couldn&apos;t save — try again.</Hint>}
     </div>
   );
 }

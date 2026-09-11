@@ -28,30 +28,35 @@
   --color-text-400: 126 147 141;
 }
 
+/* Matches waby-loan (13)'s body.theme-dark block exactly (hex -> rgb triplet). The
+   prototype's -100/-50 tints are semi-transparent rgba() overlays; since this token system
+   only supports opaque colors (consumed via rgb(var(--x) / <alpha-value>)), those are
+   pre-composited to an equivalent opaque color against the prototype's own --card dark
+   surface (18 36 33), which is where badges/pills using these tokens actually sit. */
 .dark {
   --color-ink-900: 10 46 42;
   --color-ink-700: 19 78 72;
-  --color-teal-900: 120 235 213;
-  --color-teal-800: 86 224 199;
-  --color-teal-700: 29 178 155;
-  --color-teal-600: 45 191 169;
-  --color-teal-100: 18 51 48;
-  --color-teal-50: 15 38 36;
-  --color-paper: 10 20 18;
-  --color-card: 15 30 27;
-  --color-gold-700: 231 197 103;
-  --color-gold-600: 210 174 85;
-  --color-gold-100: 59 46 18;
-  --color-danger: 255 107 96;
-  --color-danger-100: 58 21 18;
-  --color-amber-700: 232 177 92;
-  --color-amber-100: 58 39 16;
-  --color-violet-700: 183 158 240;
-  --color-violet-100: 42 33 64;
-  --color-line: 31 51 47;
-  --color-text-900: 234 243 241;
-  --color-text-600: 159 184 178;
-  --color-text-400: 108 137 131;
+  --color-teal-900: 229 245 241;
+  --color-teal-800: 20 184 166;
+  --color-teal-700: 16 185 129;
+  --color-teal-600: 20 184 166;
+  --color-teal-100: 18 60 48;
+  --color-teal-50: 18 48 41;
+  --color-paper: 13 27 24;
+  --color-card: 18 36 33;
+  --color-gold-700: 251 191 36;
+  --color-gold-600: 251 191 36;
+  --color-gold-100: 54 56 29;
+  --color-danger: 248 113 113;
+  --color-danger-100: 50 47 44;
+  --color-amber-700: 245 158 11;
+  --color-amber-100: 50 53 30;
+  --color-violet-700: 196 181 253;
+  --color-violet-100: 37 45 67;
+  --color-line: 27 51 48;
+  --color-text-900: 229 245 241;
+  --color-text-600: 122 153 146;
+  --color-text-400: 122 153 146;
 }
 
 body {
@@ -88,4 +93,22 @@ body {
 
 .bar-in {
   animation: bar-in 0.28s ease-out both;
+}
+
+/* Scoped print target — an amortization schedule can be printed/saved as PDF from inside a
+   modal without pulling in the rest of the page (dialog chrome, overlay, backdrop). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-amortization,
+  #print-amortization * {
+    visibility: visible;
+  }
+  #print-amortization {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
 }

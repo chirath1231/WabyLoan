@@ -13,6 +13,8 @@ import { Tabs, TabPanel } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
 import { StatTile } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import { PlayCircle } from 'lucide-react';
 
 function ItemRow({ item, onToggle, onAmountChange, onRemove }: { item: IncomeItemState; onToggle: () => void; onAmountChange: (v: number) => void; onRemove?: () => void }) {
   return (
@@ -46,6 +48,7 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [helperVideoOpen, setHelperVideoOpen] = useState(false);
 
   const skipsPayslip = state.loanCategory === 'business' || state.sector === 'self_employed';
 
@@ -156,10 +159,41 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
 
   return (
     <div className="fade-in space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-text-900">{t('step3Title')}</h1>
-        <p className="mt-1 text-[14px] text-text-600">{t('step3Sub')}</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-text-900">{t('step3Title')}</h1>
+          <p className="mt-1 text-[14px] text-text-600">{t('step3Sub')}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setHelperVideoOpen(true)}
+          className="flex items-center gap-1.5 whitespace-nowrap text-[12.5px] font-semibold text-teal-700 hover:underline"
+        >
+          <PlayCircle size={15} /> Watch 1-min Helper Video
+        </button>
       </div>
+
+      {helperVideoOpen && (
+        <Modal open onOpenChange={setHelperVideoOpen} title="Fixed vs. Non-Fixed Income">
+          <div className="space-y-3 text-sm text-text-600">
+            <p>
+              <span className="font-semibold text-text-900">Fixed income</span> — amounts that are guaranteed every month,
+              like your Basic Salary and EPF-qualifying allowances. Banks count these fully towards your affordability.
+            </p>
+            <p>
+              <span className="font-semibold text-text-900">Non-fixed income</span> — amounts that vary, like overtime,
+              bonuses, or commission. These are usually only partially counted (or not at all), since they aren&apos;t
+              guaranteed.
+            </p>
+            <p>Knowing the difference helps you understand why your eligible loan amount may be lower than your total payslip figure.</p>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button variant="ghost" onClick={() => setHelperVideoOpen(false)}>
+              Got it
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       <Tabs
         value={state.incomeMode}
@@ -187,6 +221,14 @@ export function Step3Income({ onContinue, onBack }: { onContinue: () => void; on
           </button>
           {uploadError && <Hint tone="danger">{uploadError}</Hint>}
           <Hint>Your payslip is processed securely to extract figures — the document itself is not retained after this session.</Hint>
+
+          {/* Deliberately not run through t() — shown in all three languages at once regardless
+              of the active UI language, matching the prototype's trilingual privacy notice. */}
+          <div className="space-y-1 rounded-xl border border-teal-100 bg-teal-50 p-3 text-[11.5px] leading-relaxed text-teal-800">
+            <p>Your document is processed securely and is not stored after this session.</p>
+            <p>ඔබගේ ලේඛනය ආරක්ෂිතව සකසනු ලබන අතර මෙම සැසියෙන් පසු ගබඩා නොකෙරේ.</p>
+            <p>உங்கள் ஆவணம் பாதுகாப்பாக செயலாக்கப்பட்டு, இந்த அமர்வுக்குப் பிறகு சேமிக்கப்படாது.</p>
+          </div>
 
           {state.ocrItems.length > 0 && (
             <div className="overflow-hidden rounded-xl2 border border-line bg-card">

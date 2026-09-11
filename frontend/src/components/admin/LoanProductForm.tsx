@@ -144,11 +144,13 @@ export function LoanProductForm({
   onSave,
   onCancel,
   saving,
+  saveError,
 }: {
   initial?: AdminLoanProduct;
   onSave: (data: Partial<AdminLoanProduct>) => void;
   onCancel: () => void;
   saving?: boolean;
+  saveError?: string | null;
 }) {
   const { data: banks = [] } = useAdminBanks();
   const [form, setForm] = useState<Partial<AdminLoanProduct>>({ ...DEFAULTS, ...initial });
@@ -444,6 +446,7 @@ export function LoanProductForm({
         </div>
       </Section>
 
+      {saveError && <Hint tone="danger">{saveError}</Hint>}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>
           Cancel
