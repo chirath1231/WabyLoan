@@ -1,42 +1,57 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
-import { env } from './env.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import authRouter from './routes/auth.routes.js';
-import banksRouter from './routes/banks.routes.js';
-import occupationsRouter from './routes/occupations.routes.js';
-import settingsRouter from './routes/settings.routes.js';
-import eligibilityRouter from './routes/eligibility.routes.js';
-import leadsRouter from './routes/leads.routes.js';
-import applicationsRouter from './routes/applications.routes.js';
-import ocrRouter from './routes/ocr.routes.js';
-import adminRouter from './routes/admin/index.js';
+import cookieParser from 'cookie-parser';
+
+import { authRouter } from './routes/auth.routes.js';
+import { eligibilityRouter } from './routes/eligibility.routes.js';
+import { publicRouter } from './routes/public.routes.js';
+import { leadsRouter, applicationsRouter } from './routes/leads.routes.js';
+import { ocrRouter } from './routes/ocr.routes.js';
+
+import { adminBanksRouter } from './routes/admin/banks.routes.js';
+import { adminProductsRouter } from './routes/admin/products.routes.js';
+import { adminOccupationsRouter } from './routes/admin/occupations.routes.js';
+import { adminCompanyListsRouter } from './routes/admin/companyLists.routes.js';
+import { adminSettingsRouter } from './routes/admin/settings.routes.js';
+import { adminUsersRouter } from './routes/admin/users.routes.js';
+import { adminLeadsRouter } from './routes/admin/leads.routes.js';
+import { adminAuditLogRouter } from './routes/admin/auditLog.routes.js';
+import { adminDashboardRouter } from './routes/admin/dashboard.routes.js';
+
+import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
-  app.use(cors({ origin: env.corsOrigins, credentials: true }));
+  const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true, credentials: true }));
   app.use(express.json({ limit: '2mb' }));
-  if (env.nodeEnv !== 'test') app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined'));
+  app.use(cookieParser());
+  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-  // Generous global limit; tighter limits can be layered onto /auth and /leads later if abused.
-  app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false }));
+  app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-  app.get('/health', (_req, res) => res.json({ ok: true }));
+  app.use('/api/auth', authRouter);
+  app.use('/api/eligibility', eligibilityRouter);
+  app.use('/api', publicRouter);
+  app.use('/api/leads', leadsRouter);
+  app.use('/api/applications', applicationsRouter);
+  app.use('/api/ocr', ocrRouter);
 
-  app.use('/auth', authRouter);
-  app.use('/banks', banksRouter);
-  app.use('/occupations', occupationsRouter);
-  app.use('/settings', settingsRouter);
-  app.use('/eligibility', eligibilityRouter);
-  app.use('/leads', leadsRouter);
-  app.use('/applications', applicationsRouter);
-  app.use('/ocr', ocrRouter);
-  app.use('/admin', adminRouter);
+  const admin = express.Router();
+  admin.use(requireAuth, requireAdmin);
+  admin.use('/banks', adminBanksRouter);
+  admin.use('/products', adminProductsRouter);
+  admin.use('/occupations', adminOccupationsRouter);
+  admin.use('/company-lists', adminCompanyListsRouter);
+  admin.use('/settings', adminSettingsRouter);
+  admin.use('/users', adminUsersRouter);
+  admin.use('/leads', adminLeadsRouter);
+  admin.use('/audit-log', adminAuditLogRouter);
+  admin.use('/dashboard', adminDashboardRouter);
+  app.use('/api/admin', admin);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

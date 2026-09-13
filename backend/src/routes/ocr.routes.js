@@ -1,24 +1,28 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { getOcrProvider } from '../services/ocrService.js';
-import { HttpError } from '../middleware/errorHandler.js';
+import { extractPayslip } from '../services/ocrService.js';
+import { optionalAuth } from '../middleware/auth.js';
 
-const router = Router();
+export const ocrRouter = Router();
 
-// Memory storage only — the buffer is never written to disk, and nothing keeps a reference to
-// it past this request, enforcing the zero-retention rule for raw payslip images (SRS §2.6).
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
-
-router.post('/extract', upload.single('file'), async (req, res, next) => {
-  try {
-    if (!req.file) throw new HttpError(400, 'No file uploaded.');
-    const provider = getOcrProvider();
-    const result = await provider.extract(req.file.buffer, req.file.mimetype);
-    res.json(result);
-    // req.file.buffer goes out of scope here and is garbage-collected — never persisted.
-  } catch (err) {
-    next(err);
-  }
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.mimetype)) {
+      return cb(new Error('Only PNG, JPG, or WEBP images are supported.'));
+    }
+    cb(null, true);
+  },
 });
 
-export default router;
+ocrRouter.post('/payslip', optionalAuth, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  try {
+    const extracted = await extractPayslip(req.file.buffer, req.file.mimetype);
+    res.json(extracted);
+  } catch (err) {
+    console.error('OCR extraction failed:', err);
+    res.status(502).json({ error: 'Could not read this payslip. Please try a clearer photo or enter income manually.' });
+  }
+});

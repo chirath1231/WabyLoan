@@ -1,0 +1,71 @@
+
+> backend@1.0.0 start
+> node src/server.js
+
+Waby Loan API listening on http://localhost:4000
+[0mGET /api/health [32m200[0m 1.255 ms - 11[0m
+[0mPOST /api/eligibility/compute [32m200[0m 673.782 ms - 23650[0m
+[0mPOST /api/auth/register [32m201[0m 628.869 ms - 379[0m
+[0mPOST /api/auth/login [32m200[0m 116.275 ms - 379[0m
+[0mGET /api/admin/dashboard [32m200[0m 582.796 ms - 102[0m
+[0mGET /api/admin/dashboard [33m401[0m 0.265 ms - 30[0m
+[0mPOST /api/auth/register [32m201[0m 260.996 ms - 402[0m
+[0mGET /api/admin/dashboard [33m401[0m 0.146 ms - 30[0m
+[0mPOST /api/auth/register [32m201[0m 692.567 ms - 409[0m
+[0mGET /api/admin/dashboard [33m403[0m 0.310 ms - 34[0m
+[0mGET /api/health [32m200[0m 0.196 ms - 11[0m
+[0mGET /api/settings/public [32m200[0m 561.284 ms - 48[0m
+[0mGET /api/settings/public [36m304[0m 75.868 ms - -[0m
+[0mGET /api/occupations [32m200[0m 592.697 ms - 468[0m
+[0mGET /api/occupations [36m304[0m 57.759 ms - -[0m
+[0mPOST /api/eligibility/compute [32m200[0m 749.948 ms - 23669[0m
+[0mPOST /api/auth/register [32m201[0m 706.571 ms - 407[0m
+[0mGET /api/health [32m200[0m 0.837 ms - 11[0m
+[0mPOST /api/auth/login [32m200[0m 690.757 ms - 379[0m
+[0mGET /api/admin/dashboard [32m200[0m 584.357 ms - 102[0m
+[0mGET /api/admin/dashboard [36m304[0m 83.505 ms - -[0m
+[0mGET /api/admin/products [32m200[0m 584.515 ms - 69047[0m
+[0mGET /api/admin/company-lists [32m200[0m 590.275 ms - 3716[0m
+[0mGET /api/admin/banks [32m200[0m 657.726 ms - 61872[0m
+[0mGET /api/admin/products [36m304[0m 129.273 ms - -[0m
+[0mGET /api/admin/company-lists [36m304[0m 183.563 ms - -[0m
+[0mGET /api/admin/banks [36m304[0m 193.981 ms - -[0m
+[0mGET /api/admin/company-lists [36m304[0m 141.684 ms - -[0m
+[0mGET /api/admin/banks [36m304[0m 200.719 ms - -[0m
+[0mGET /api/admin/company-lists [36m304[0m 150.413 ms - -[0m
+[0mGET /api/admin/banks [36m304[0m 165.961 ms - -[0m
+[0mGET /api/occupations [36m304[0m 532.787 ms - -[0m
+[0mGET /api/occupations [36m304[0m 57.360 ms - -[0m
+[0mPUT /api/admin/banks/boc/products/0eb856c0-5722-4d21-90c2-361bf49d0e46 [32m200[0m 723.452 ms - 1314[0m
+[0mGET /api/admin/banks [32m200[0m 179.002 ms - 61872[0m
+[0mGET /api/admin/company-lists [36m304[0m 529.721 ms - -[0m
+[0mGET /api/admin/products [32m200[0m 134.554 ms - 69047[0m
+[0mGET /api/admin/audit-log [32m200[0m 71.611 ms - 926[0m
+[0mGET /api/admin/products [36m304[0m 579.719 ms - -[0m
+[0mPUT /api/admin/banks/boc/products/0eb856c0-5722-4d21-90c2-361bf49d0e46 [32m200[0m 133.937 ms - 1314[0m
+[0mGET /api/settings/public [32m200[0m 860.687 ms - 48[0m
+[0mGET /api/settings/public [36m304[0m 112.136 ms - -[0m
+[0mGET /api/occupations [32m200[0m 62.366 ms - 468[0m
+[0mGET /api/occupations [36m304[0m 54.864 ms - -[0m
+OCR extraction failed: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent: [404 Not Found] This model models/gemini-2.0-flash is no longer available. Please update your code to use models/gemini-3.6-flash for the latest features and improvements. We recommend you to use the Interactions API.
+    at handleResponseNotOk (file:///C:/Users/USER/Desktop/WL/Backend/node_modules/@google/generative-ai/dist/index.mjs:432:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async makeRequest (file:///C:/Users/USER/Desktop/WL/Backend/node_modules/@google/generative-ai/dist/index.mjs:401:9)
+    at async generateContent (file:///C:/Users/USER/Desktop/WL/Backend/node_modules/@google/generative-ai/dist/index.mjs:865:22)
+    at async geminiExtract (file:///C:/Users/USER/Desktop/WL/Backend/src/services/ocrService.js:34:18)
+    at async file:///C:/Users/USER/Desktop/WL/Backend/src/routes/ocr.routes.js:22:23 {
+  status: 404,
+  statusText: 'Not Found',
+  errorDetails: undefined
+}
+[0mPOST /api/ocr/payslip [31m502[0m 2066.061 ms - 93[0m
+[0mGET /api/settings/public [36m304[0m 492.029 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 56.794 ms - -[0m
+[0mGET /api/occupations [36m304[0m 55.707 ms - -[0m
+[0mGET /api/occupations [36m304[0m 59.257 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 486.137 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 61.784 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 514.886 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 56.747 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 507.751 ms - -[0m
+[0mGET /api/settings/public [36m304[0m 55.996 ms - -[0m

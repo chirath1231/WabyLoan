@@ -1,81 +1,73 @@
 import { Router } from 'express';
-import { z } from 'zod';
-import passport from '../auth/passport.js';
-import { authenticate } from '../middleware/auth.js';
-import { validateBody } from '../middleware/validate.js';
-import { oauthEnabled } from '../env.js';
-import { getUserById, loginWithEmail, registerWithEmail } from '../services/authService.js';
+import bcrypt from 'bcryptjs';
+import { body, validationResult } from 'express-validator';
+import { pool } from '../db/pool.js';
+import { signToken, requireAuth } from '../middleware/auth.js';
 
-const router = Router();
+export const authRouter = Router();
 
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string().min(1).optional(),
-});
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+authRouter.post(
+  '/register',
+  body('email').custom((v) => EMAIL_RE.test(v || '')).withMessage('Enter a valid email address.'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters.'),
+  body('name').trim().notEmpty().withMessage('Name is required.'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
-router.post('/register', validateBody(registerSchema), async (req, res, next) => {
-  try {
-    const { email, password, name } = req.body;
-    res.status(201).json(await registerWithEmail(email, password, name));
-  } catch (err) {
-    next(err);
+    const email = req.body.email.trim().toLowerCase();
+    const { name } = req.body;
+    const existing = await pool.query('select id from users where email = $1', [email]);
+    if (existing.rows.length) return res.status(409).json({ error: 'An account with this email already exists.' });
+
+    const passwordHash = await bcrypt.hash(req.body.password, 10);
+    const role = email === 'admin@waby.lk' ? 'admin' : 'user';
+    const result = await pool.query(
+      `insert into users (email, password_hash, name, role) values ($1,$2,$3,$4)
+       returning id, email, name, role`,
+      [email, passwordHash, name, role]
+    );
+    const user = result.rows[0];
+    res.status(201).json({ token: signToken(user), user });
   }
-});
-
-router.post('/login', validateBody(loginSchema), async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    res.json(await loginWithEmail(email, password));
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/me', authenticate, async (req, res, next) => {
-  try {
-    res.json(await getUserById(req.authUser.id));
-  } catch (err) {
-    next(err);
-  }
-});
-
-// OAuth is optional — routes exist but 501 until the operator supplies client credentials.
-router.get('/google', (req, res, next) => {
-  if (!oauthEnabled.google) return res.status(501).json({ error: 'Google OAuth is not configured on this server.' });
-  passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next);
-});
-router.get(
-  '/google/callback',
-  (req, res, next) => {
-    if (!oauthEnabled.google) return res.status(501).json({ error: 'Google OAuth is not configured on this server.' });
-    passport.authenticate('google', { session: false, failureRedirect: '/auth/failure' })(req, res, next);
-  },
-  (req, res) => {
-    res.json(req.user);
-  },
 );
 
-router.get('/facebook', (req, res, next) => {
-  if (!oauthEnabled.facebook) return res.status(501).json({ error: 'Facebook OAuth is not configured on this server.' });
-  passport.authenticate('facebook', { scope: ['email'], session: false })(req, res, next);
-});
-router.get(
-  '/facebook/callback',
-  (req, res, next) => {
-    if (!oauthEnabled.facebook) return res.status(501).json({ error: 'Facebook OAuth is not configured on this server.' });
-    passport.authenticate('facebook', { session: false, failureRedirect: '/auth/failure' })(req, res, next);
-  },
-  (req, res) => {
-    res.json(req.user);
-  },
+authRouter.post(
+  '/login',
+  body('email').notEmpty(),
+  body('password').notEmpty(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Email and password are required.' });
+
+    const email = req.body.email.trim().toLowerCase();
+    const result = await pool.query('select id, email, name, role, password_hash from users where email = $1', [email]);
+    const user = result.rows[0];
+    if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
+
+    const ok = await bcrypt.compare(req.body.password, user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Invalid email or password.' });
+
+    delete user.password_hash;
+    res.json({ token: signToken(user), user });
+  }
 );
 
-router.get('/failure', (_req, res) => res.status(401).json({ error: 'OAuth authentication failed.' }));
+authRouter.get('/me', requireAuth, async (req, res) => {
+  const result = await pool.query('select id, email, name, role from users where id = $1', [req.user.sub]);
+  const user = result.rows[0];
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  res.json({ user });
+});
 
-export default router;
+// Google/Facebook OAuth are not wired up yet (no client ID/secret provisioned) —
+// these placeholders return a clear error instead of a broken redirect so the
+// frontend buttons can exist now and be flipped on later without a contract change.
+authRouter.get('/google', (req, res) => {
+  res.status(501).json({ error: 'Google sign-in is not configured yet.' });
+});
+authRouter.get('/facebook', (req, res) => {
+  res.status(501).json({ error: 'Facebook sign-in is not configured yet.' });
+});

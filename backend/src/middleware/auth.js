@@ -1,46 +1,42 @@
-import { verifyToken } from '../auth/jwt.js';
-import { query } from '../db/pool.js';
+import jwt from 'jsonwebtoken';
 
-function extractToken(req) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) return null;
-  return header.slice('Bearer '.length).trim();
+export function signToken(user) {
+  return jwt.sign(
+    { sub: user.id, email: user.email, role: user.role, name: user.name },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
 }
 
-/** Attaches req.authUser if a valid bearer token is present; leaves it undefined otherwise (guest). Never rejects. */
-export function optionalAuthenticate(req, _res, next) {
-  const token = extractToken(req);
+export function requireAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Not authenticated.' });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired session.' });
+  }
+}
+
+// Populates req.user when a valid token is present, but never rejects the
+// request — used on routes guests may access (eligibility compute, soft leads).
+export function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (token) {
     try {
-      const payload = verifyToken(token);
-      req.authUser = { id: payload.sub, role: payload.role };
+      req.user = jwt.verify(token, process.env.JWT_SECRET);
     } catch {
-      // invalid/expired token — treat as guest rather than erroring, per SRS guest-mode logic
+      // ignore invalid token, treat as guest
     }
   }
   next();
 }
 
-/** Requires a valid bearer token; 401s otherwise. */
-export function authenticate(req, res, next) {
-  const token = extractToken(req);
-  if (!token) return res.status(401).json({ error: 'Authentication required.' });
-  try {
-    const payload = verifyToken(token);
-    req.authUser = { id: payload.sub, role: payload.role };
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired token.' });
-  }
-}
-
-// Re-checks the DB (rather than trusting the JWT's role claim alone) so a demoted or deactivated
-// admin loses console access immediately instead of waiting out the token's remaining lifetime.
-export async function requireAdmin(req, res, next) {
-  if (!req.authUser) return res.status(403).json({ error: 'Admin access required.' });
-  const { rows } = await query('SELECT role, active FROM users WHERE id = $1', [req.authUser.id]);
-  const user = rows[0];
-  if (!user || user.role !== 'admin' || !user.active) {
+export function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required.' });
   }
   next();

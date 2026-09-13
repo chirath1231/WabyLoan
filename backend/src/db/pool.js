@@ -1,21 +1,27 @@
 import pg from 'pg';
-import { env } from '../env.js';
+import 'dotenv/config';
 
 const { Pool } = pg;
 
-// Managed Postgres providers (Supabase, Railway, Render, ...) terminate SSL with a chain that
-// Node's stricter default verification rejects; localhost dev servers rarely speak SSL at all.
-// A `sslmode` left in the URL takes priority over the `ssl` option below, so strip it and decide here.
-const dbUrl = new URL(env.databaseUrl);
-const isLocalHost = dbUrl.hostname === 'localhost' || dbUrl.hostname === '127.0.0.1';
-dbUrl.searchParams.delete('sslmode');
-dbUrl.searchParams.delete('schema');
+// Supabase's pooler presents a cert chain Node's default trust store won't
+// fully verify; TLS is still negotiated, so this only relaxes certificate
+// verification, not encryption. Skipped entirely for a plain local Postgres.
+// The `sslmode` query param is stripped because pg-connection-string derives
+// its own ssl object from it, which otherwise overrides the explicit `ssl`
+// option below instead of being overridden by it.
+const rawUrl = process.env.DATABASE_URL || '';
+const needsRelaxedSsl = /sslmode=require/.test(rawUrl);
+const connectionString = rawUrl.replace(/([?&])sslmode=require&?/, '$1').replace(/[?&]$/, '');
 
 export const pool = new Pool({
-  connectionString: dbUrl.toString(),
-  ssl: isLocalHost ? false : { rejectUnauthorized: false },
+  connectionString,
+  ssl: needsRelaxedSsl ? { rejectUnauthorized: false } : undefined,
 });
 
-export function query(text, params) {
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle Postgres client', err);
+});
+
+export async function query(text, params) {
   return pool.query(text, params);
 }

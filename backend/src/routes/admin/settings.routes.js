@@ -1,39 +1,33 @@
 import { Router } from 'express';
-import { validateBody } from '../../middleware/validate.js';
-import { settingsUpdateSchema } from '../../schemas/admin.js';
-import { getSettings, updateSettings } from '../../services/settingsService.js';
-import { resetAllToDefaults } from '../../services/resetService.js';
+import { pool } from '../../db/pool.js';
+import { getAdminSettings } from '../../services/adminData.js';
+import { logAudit } from '../../services/auditLog.js';
 
-const router = Router();
+export const adminSettingsRouter = Router();
 
-router.get('/', async (_req, res, next) => {
-  try {
-    res.json(await getSettings());
-  } catch (err) {
-    next(err);
-  }
+adminSettingsRouter.get('/', async (req, res) => {
+  res.json({ settings: await getAdminSettings() });
 });
 
-router.put('/', validateBody(settingsUpdateSchema), async (req, res, next) => {
-  try {
-    res.json(await updateSettings(req.body, req.authUser.id));
-  } catch (err) {
-    next(err);
-  }
+adminSettingsRouter.put('/', async (req, res) => {
+  const { dti, businessLoanEnabled, loanRoundingStep, pensionMaxAge } = req.body;
+  await pool.query(
+    `update admin_settings set
+      dti_government = coalesce($1, dti_government),
+      dti_semi_government = coalesce($2, dti_semi_government),
+      dti_private = coalesce($3, dti_private),
+      dti_self_employed = coalesce($4, dti_self_employed),
+      business_loan_enabled = coalesce($5, business_loan_enabled),
+      loan_rounding_step = coalesce($6, loan_rounding_step),
+      pension_max_age = coalesce($7, pension_max_age),
+      updated_at = now()
+     where id = true`,
+    [
+      dti?.government ?? null, dti?.semi_government ?? null, dti?.private ?? null,
+      dti?.self_employed ?? null, businessLoanEnabled ?? null, loanRoundingStep ?? null,
+      pensionMaxAge ?? null,
+    ]
+  );
+  await logAudit(req.user.email, 'settings.update', req.body);
+  res.json({ settings: await getAdminSettings() });
 });
-
-/**
- * Restores banks, occupations, and settings to the shipped baseline (SRS §5.3). The prototype
- * has no confirmation step for this — the web admin console must confirm client-side before
- * calling this, given the blast radius.
- */
-router.post('/reset-defaults', async (req, res, next) => {
-  try {
-    await resetAllToDefaults(req.authUser.id);
-    res.json(await getSettings());
-  } catch (err) {
-    next(err);
-  }
-});
-
-export default router;
