@@ -1,4 +1,4 @@
-// Ported 1:1 from the original client-side prototype (waby-loan (13) (1).html,
+// Ported from the original client-side prototype (waby-loan (13) (1).html,
 // lines ~682-1166: computeBaseIncome / runEligibilityEngine and helpers). This is
 // the core business logic — bank rate comparison, EMI/DTI math — moved server-side
 // so the rules and rates aren't shipped to the browser. Behavior is preserved
@@ -176,6 +176,21 @@ function getLegalFee(input) {
   return Math.min(Number(input.housing?.propertyValue || 0) * (legalFeePct / 100), legalFeeCap);
 }
 
+// A product's rate for one rate type at this term, from its interest-rate tiers: a flat fixed_rate_value,
+// or benchmark (AWPLR) + margin floored at floor_rate. null = not offered at this term (never a guess).
+function resolveTierRate(tiers, termYears, rateTypeCode, benchmark) {
+  const tier = tiers.find((t) => t.rateTypeCode === rateTypeCode && termYears >= t.minTermYears && termYears <= t.maxTermYears);
+  if (!tier) return null;
+  if (tier.fixedRateValue != null) return { rate: tier.fixedRateValue, rateType: rateTypeCode, benchmark: null };
+  if (tier.marginOverAwplr == null || !benchmark || !(benchmark.rate > 0) || benchmark.active === false) return null;
+  const floating = benchmark.rate + tier.marginOverAwplr;
+  return {
+    rate: tier.floorRate != null ? Math.max(floating, tier.floorRate) : floating,
+    rateType: rateTypeCode,
+    benchmark: { code: benchmark.code, label: benchmark.label, rate: benchmark.rate, margin: tier.marginOverAwplr, floorRate: tier.floorRate },
+  };
+}
+
 function getCompanyList(adminData, listId) {
   if (!listId) return null;
   const list = adminData.companyLists.find((l) => l.id === listId);
@@ -186,7 +201,17 @@ function getCompanyList(adminData, listId) {
  * @param {object} input - applicant answers, shaped like the prototype's `state` (see spec).
  * @param {object} adminData - { banks, occupations, companyLists, dti, loanRoundingStep }.
  */
-export function runEligibilityEngine(input, adminData) {
+export function runEligibilityEngine(rawInput, adminData) {
+  // OT and other income only count where the sector/occupation income policy allows them (fail-closed:
+  // a pair with no configured policy row counts neither).
+  const policy = adminData.incomePolicies?.[rawInput.sector]?.[rawInput.occupation] || { otAllowed: false, otherIncomeAllowed: false };
+  const input = {
+    ...rawInput,
+    otMonthlyAverage: policy.otAllowed ? rawInput.otMonthlyAverage : 0,
+    otherIncomeMonthly: policy.otherIncomeAllowed ? rawInput.otherIncomeMonthly : 0,
+  };
+  const benchmarksByCode = new Map((adminData.benchmarks || []).map((b) => [b.code, b]));
+
   const gross = computeGrossForDTI(input);
   const dtiPct = getDtiPercent(input, adminData);
   const fixedDeductions = fixedDeductionsTotal(input);
@@ -233,9 +258,31 @@ export function runEligibilityEngine(input, adminData) {
       }
     }
 
-    const rate = opts.rateOverride != null && opts.rateOverride !== ''
-      ? Math.max(Number(opts.rateOverride), 1)
-      : Math.max(bank.baseRate + (opts.rateAdjust || 0), 1);
+    let rate;
+    let rateType = opts.interestRateType || 'fixed';
+    let benchmark = null;
+    let rateOptions = null;
+    if (opts.interestRateTiers && opts.interestRateTiers.length) {
+      const bm = benchmarksByCode.get(opts.benchmarkCode || adminData.defaultBenchmarkCode);
+      const fixed = resolveTierRate(opts.interestRateTiers, termYears, 'fixed', bm);
+      const variable = resolveTierRate(opts.interestRateTiers, termYears, 'variable', bm);
+      rateOptions = { fixed, variable };
+      const best = [fixed, variable].filter(Boolean).sort((a, b) => a.rate - b.rate)[0];
+      if (!best) {
+        return {
+          bank, ineligible: true,
+          reason: `${bank.name} has no published rate for a ${termYears}-year term on this product.`,
+          shortReason: '❌ Term Not Offered', variantLabel: opts.variantLabel, variantKey: opts.variantKey,
+        };
+      }
+      rate = Math.max(best.rate, 1);
+      rateType = best.rateType;
+      benchmark = best.benchmark;
+    } else {
+      rate = opts.rateOverride != null && opts.rateOverride !== ''
+        ? Math.max(Number(opts.rateOverride), 1)
+        : Math.max(bank.baseRate + (opts.rateAdjust || 0), 1);
+    }
     const isFlatRate = opts.interestRateType === 'flat';
     const docChargeBasis = opts.docChargeBasis || 'percent';
     const docChargePct = opts.docChargeValue != null && opts.docChargeValue !== '' && docChargeBasis !== 'fixed' ? Number(opts.docChargeValue) : bank.docChargePct;
@@ -313,7 +360,7 @@ export function runEligibilityEngine(input, adminData) {
     const netCashInHand = input.settleExistingLoans ? maxLoan - Number(input.existingLoanBalance || 0) : null;
 
     return {
-      bank, ineligible: false, rate, termYears, termCapReason, months, schemeApplied: opts.schemeApplied,
+      bank, ineligible: false, rate, rateType, benchmark, rateOptions, termYears, termCapReason, months, schemeApplied: opts.schemeApplied,
       maxLoan, emi, docCharge, legalFee, totalRepayment, isFlatRate,
       totalInterest, totalCostOfCredit, totalOutlay,
       cappedByAsset, cappedByRequest, emiPlus1, emiPlus2, netCashInHand,
@@ -321,11 +368,16 @@ export function runEligibilityEngine(input, adminData) {
       remarks: opts.remarksList || [], variantLabel: opts.variantLabel, variantKey: opts.variantKey,
       promotional: !!opts.promotional,
       isPreferredEmployer: !!opts.isPreferredEmployer,
+      productId: opts.productDbId ?? null,
+      productName: opts.productName ?? null,
+      guarantorRequired: opts.guarantorRequired ?? null,
+      collateralRequired: opts.collateralRequired ?? null,
+      ratesEffectiveDate: opts.ratesEffectiveDate ?? bank.ratesEffectiveDate ?? null,
     };
   }
 
   const sectorLabels = { government: 'Government', semi_government: 'Semi-Government', private: 'Private Sector', self_employed: 'Self-Employed' };
-  const targetLabels = { doctor: 'Doctors', engineer: 'Engineers', gov_exec: 'Government Executives', teacher: 'Teachers', nurse: 'Nurses' };
+  const targetLabels = Object.fromEntries(adminData.occupations.map((o) => [o.id, o.label]));
   const occObj = adminData.occupations.find((o) => o.id === input.occupation);
   const occLabel = occObj ? occObj.label : 'Professional';
 
@@ -333,8 +385,11 @@ export function runEligibilityEngine(input, adminData) {
 
   function getBankProducts(bank) {
     const list = [];
-    list.push({
-      id: 'general', name: null, status: 'active', termCat: cat,
+    const real = (bank.products || []).filter((p) => p.id !== 'general' && p.isActive !== false && p.status !== 'suspended' && (!p.category || p.category === cat));
+    const hasUnrestrictedProduct = real.some((p) =>
+      p.commonLoan || ((p.targetOccupation === 'all' || !p.targetOccupation?.length) && !p.eligibleSector && (p.targetGender || 'all') === 'all'));
+    if (!hasUnrestrictedProduct) list.push({
+      id: 'general', name: `Standard ${LOAN_LABELS[cat]}`, status: 'active', termCat: cat,
       rate: bank.baseRate, docChargePct: null, maxTermYears: null,
       dtiOverride: null, otherIncomePct: 0,
       targetOccupation: dualSchemeMode ? 'all' : bank.targetOccupation || 'all',
@@ -342,8 +397,8 @@ export function runEligibilityEngine(input, adminData) {
       remarks: bank.remarks,
     });
 
-    if (bank.products && bank.products.length) {
-      bank.products.filter((p) => p.id !== 'general').forEach((p) => list.push(p));
+    if (real.length) {
+      real.forEach((p) => list.push(p));
     } else if (dualSchemeMode) {
       const matchesTargetOcc = !bank.targetOccupation || bank.targetOccupation === 'all' || bank.targetOccupation === input.occupation;
       if (matchesTargetOcc) {
@@ -371,6 +426,9 @@ export function runEligibilityEngine(input, adminData) {
     }
 
     const products = getBankProducts(bank).filter((p) => p.status !== 'suspended' && (!p.category || p.category === cat));
+    // Why each filtered-out product didn't apply; shown as one greyed row if the bank ends up with no offer at all.
+    const skipped = [];
+    const resultsBefore = results.length;
     products.forEach((product) => {
       let isPreferredEmployer = false;
       if (product.companiesListRequired) {
@@ -384,26 +442,30 @@ export function runEligibilityEngine(input, adminData) {
         const occMismatch = product.targetOccupation && !targetOccList.includes('all') && !targetOccList.includes(input.occupation);
         if (occMismatch) {
           const occLabelStr = targetOccList.map((id) => targetLabels[id] || id).join(' or ');
-          if (products.length === 1) {
-            results.push({ bank, ineligible: true, reason: `Restricted to ${occLabelStr} only.`, shortReason: `❌ ${occLabelStr} Only`, variantLabel: null, variantKey: bank.id });
-          }
+          skipped.push({ bank, ineligible: true, reason: `Restricted to ${occLabelStr} only.`, shortReason: `❌ ${occLabelStr} Only`, variantLabel: null, variantKey: bank.id });
+          return;
+        }
+        if (product.eligibleSector && product.eligibleSector !== input.sector) {
+          const label = sectorLabels[product.eligibleSector] || product.eligibleSector;
+          skipped.push({ bank, ineligible: true, reason: `Restricted to ${label} sector applicants only.`, shortReason: `❌ ${label} Sector Only`, variantLabel: null, variantKey: bank.id });
           return;
         }
         if (product.targetGender && product.targetGender !== 'all') {
           if (!input.applicant?.gender || input.applicant.gender !== product.targetGender) return;
         }
-        if (product.companiesListRequired) {
-          if (!isPreferredEmployer) {
-            if (products.length === 1) {
-              results.push({ bank, ineligible: true, reason: `This product is restricted to employees of approved companies — add your employer name in Step 2 to check.`, shortReason: '❌ Employer Not On Approved List', variantLabel: null, variantKey: bank.id });
-            }
-            return;
-          }
-        }
         if (product.minEmploymentMonths > 0 && input.employmentMonths != null && input.employmentMonths < product.minEmploymentMonths) {
-          if (products.length === 1) {
-            results.push({ bank, ineligible: true, reason: `Requires at least ${product.minEmploymentMonths} months in your current job (you entered ${input.employmentMonths}).`, shortReason: '❌ Employment Period Too Short', variantLabel: null, variantKey: bank.id });
-          }
+          skipped.push({ bank, ineligible: true, reason: `Requires at least ${product.minEmploymentMonths} months in your current job (you entered ${input.employmentMonths}).`, shortReason: '❌ Employment Period Too Short', variantLabel: null, variantKey: bank.id });
+          return;
+        }
+      }
+      // Applies to common loans too. A high enough qualifying income stands in for being on the list.
+      if (product.companiesListRequired && !isPreferredEmployer) {
+        const threshold = adminData.unapprovedEmployerSalaryOverrideThreshold;
+        if (threshold == null || computeQualifyingIncome(input, product) < threshold) {
+          const reason = threshold == null
+            ? 'This product is restricted to employees of approved companies — add your employer name in Step 2 to check.'
+            : `Requires an employer on the bank's approved list, or a net monthly salary of at least ${fmt(threshold)}.`;
+          skipped.push({ bank, ineligible: true, reason, shortReason: '❌ Employer Not On Approved List', variantLabel: null, variantKey: bank.id });
           return;
         }
       }
@@ -414,9 +476,9 @@ export function runEligibilityEngine(input, adminData) {
         otherIncomePct: product.otherIncomePct,
         otIncluded: product.otIncluded,
         remarksList: product.remarks,
-        variantLabel: products.length > 1 ? product.name : null,
+        variantLabel: product.name || null,
         variantKey: bank.id + '__' + product.id,
-        schemeApplied: product.id !== 'general',
+        schemeApplied: product.id === 'special' || (Array.isArray(product.targetOccupation) && product.targetOccupation.includes(input.occupation)),
         promotional: product.status === 'promotional',
         ageMin: product.ageMin,
         ageMaxAtMaturity: product.ageMaxAtMaturity,
@@ -428,9 +490,17 @@ export function runEligibilityEngine(input, adminData) {
         docChargeMinOverride: product.docChargeMin,
         docChargeMaxOverride: product.docChargeMax,
         interestRateType: product.interestRateType,
+        interestRateTiers: product.interestRateTiers,
+        benchmarkCode: product.benchmarkCode,
+        productDbId: product.dbId,
+        productName: product.name,
+        guarantorRequired: product.guarantorRequired,
+        ratesEffectiveDate: product.ratesEffectiveDate,
+        collateralRequired: product.collateralRequired,
         isPreferredEmployer,
       }));
     });
+    if (results.length === resultsBefore && skipped.length) results.push(skipped[0]);
   });
 
   const eligible = results.filter((r) => !r.ineligible).sort((a, b) => a.totalCostOfCredit - b.totalCostOfCredit);

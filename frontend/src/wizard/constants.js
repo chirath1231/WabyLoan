@@ -1,11 +1,4 @@
-export const CATEGORIES = [
-  { id: 'personal', label: 'Personal Loan', icon: 'fa-sack-dollar' },
-  { id: 'housing', label: 'Housing Loan', icon: 'fa-house' },
-  { id: 'vehicle', label: 'Vehicle Leasing', icon: 'fa-car' },
-  { id: 'business', label: 'Business Loan', icon: 'fa-briefcase' },
-  { id: 'pension', label: 'Pension Loan', icon: 'fa-user-clock' },
-];
-
+// Fallback until /master-data (master_sectors) loads.
 export const SECTORS = [
   { id: 'government', label: 'Government' },
   { id: 'semi_government', label: 'Semi-Government' },

@@ -1,16 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLang } from '../context/LangContext.jsx';
-import { api } from '../api/client.js';
 import { SECTORS, defaultRetirementAge, isValidAge, maxValidApplicantAge } from './constants.js';
 
-export default function Step2Profile({ wizard, setWizard, settings, onBack, onContinue }) {
+export default function Step2Profile({ wizard, setWizard, settings, masterData, onBack, onContinue }) {
   const { t } = useLang();
-  const [occupations, setOccupations] = useState([]);
   const [ageError, setAgeError] = useState('');
-
-  useEffect(() => {
-    api.get('/occupations').then(({ data }) => setOccupations(data.occupations));
-  }, []);
+  // Sectors and occupations come from master_sectors / master_occupations; SECTORS is only the fallback while loading.
+  const occupations = masterData?.occupations || [];
+  const sectors = masterData?.sectors?.length ? masterData.sectors : SECTORS;
 
   const isPension = wizard.loanCategory === 'pension';
   const isHousing = wizard.loanCategory === 'housing';
@@ -49,7 +46,7 @@ export default function Step2Profile({ wizard, setWizard, settings, onBack, onCo
 
       <label className="field-label">Employment sector</label>
       <div className="grid grid-cols-2 gap-3 mb-5">
-        {SECTORS.map((s) => (
+        {sectors.map((s) => (
           <button
             key={s.id}
             type="button"

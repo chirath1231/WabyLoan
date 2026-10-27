@@ -64,8 +64,8 @@ export default function BankDetailModal({ result, category, applicantSnapshot, o
     setApplyStatus('sending');
     try {
       await api.post('/applications', {
-        bankId: result.bank.id, category, requestedAmount: result.maxLoan,
-        applicantSnapshot, computedResult: result,
+        bankId: result.bank.id, productId: result.productId, category, requestedAmount: result.maxLoan,
+        applicantSnapshot, computedResult: { ...result, bank: undefined },
       });
       setApplyStatus('sent');
     } catch {
@@ -74,8 +74,8 @@ export default function BankDetailModal({ result, category, applicantSnapshot, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card fade-in w-full max-w-2xl max-h-[85vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4" onClick={onClose}>
+      <div className="card modal-panel w-full max-w-2xl max-h-[85vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-display font-bold text-lg">{result.bank.name}</h2>

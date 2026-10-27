@@ -36,12 +36,14 @@ export default function ApplyPage() {
   const [step, setStep] = useState(1);
   const [wizard, setWizard] = useState(initialWizardState());
   const [settings, setSettings] = useState(null);
+  const [masterData, setMasterData] = useState(null);
   const [eligibility, setEligibility] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/settings/public').then(({ data }) => setSettings(data));
+    api.get('/master-data').then(({ data }) => setMasterData(data));
   }, []);
 
   const goToResults = async () => {
@@ -70,8 +72,8 @@ export default function ApplyPage() {
       <Stepper current={step} />
       {error && <p className="mb-4 text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
-      {step === 1 && <Step1LoanType wizard={wizard} setWizard={setWizard} settings={settings} onContinue={next} />}
-      {step === 2 && <Step2Profile wizard={wizard} setWizard={setWizard} settings={settings} onBack={back} onContinue={next} />}
+      {step === 1 && <Step1LoanType wizard={wizard} setWizard={setWizard} masterData={masterData} onContinue={next} />}
+      {step === 2 && <Step2Profile wizard={wizard} setWizard={setWizard} settings={settings} masterData={masterData} onBack={back} onContinue={next} />}
       {step === 3 && <Step3Income wizard={wizard} setWizard={setWizard} onBack={back} onContinue={next} />}
       {step === 4 && <Step4LoanDetails wizard={wizard} setWizard={setWizard} onBack={back} onContinue={goToResults} busy={busy} />}
       {step === 5 && <Step5Results wizard={wizard} eligibility={eligibility} onBack={() => setStep(4)} />}

@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
 
+// Roles come from master_roles: 'admin' / 'editor' / 'viewer' are console staff, 'user' is a public applicant.
+export const STAFF_ROLES = ['admin', 'editor', 'viewer'];
+
 export function signToken(user) {
   return jwt.sign(
     { sub: user.id, email: user.email, role: user.role, name: user.name },
@@ -31,6 +34,17 @@ export function optionalAuth(req, res, next) {
     } catch {
       // ignore invalid token, treat as guest
     }
+  }
+  next();
+}
+
+// Any console role may read; viewers are read-only.
+export function requireStaff(req, res, next) {
+  if (!req.user || !STAFF_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Admin access required.' });
+  }
+  if (req.method !== 'GET' && req.user.role === 'viewer') {
+    return res.status(403).json({ error: 'Your role is read-only.' });
   }
   next();
 }

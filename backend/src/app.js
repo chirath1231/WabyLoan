@@ -10,7 +10,7 @@ import { leadsRouter, applicationsRouter } from './routes/leads.routes.js';
 import { ocrRouter } from './routes/ocr.routes.js';
 
 import { adminBanksRouter } from './routes/admin/banks.routes.js';
-import { adminProductsRouter } from './routes/admin/products.routes.js';
+import { adminProductsRouter, adminLookupsRouter } from './routes/admin/products.routes.js';
 import { adminOccupationsRouter } from './routes/admin/occupations.routes.js';
 import { adminCompanyListsRouter } from './routes/admin/companyLists.routes.js';
 import { adminSettingsRouter } from './routes/admin/settings.routes.js';
@@ -19,7 +19,7 @@ import { adminLeadsRouter } from './routes/admin/leads.routes.js';
 import { adminAuditLogRouter } from './routes/admin/auditLog.routes.js';
 import { adminDashboardRouter } from './routes/admin/dashboard.routes.js';
 
-import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { requireAuth, requireStaff } from './middleware/auth.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 export function createApp() {
@@ -41,7 +41,8 @@ export function createApp() {
   app.use('/api/ocr', ocrRouter);
 
   const admin = express.Router();
-  admin.use(requireAuth, requireAdmin);
+  admin.use(requireAuth, requireStaff);
+  admin.use('/lookups', adminLookupsRouter);
   admin.use('/banks', adminBanksRouter);
   admin.use('/products', adminProductsRouter);
   admin.use('/occupations', adminOccupationsRouter);

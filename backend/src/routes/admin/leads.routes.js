@@ -4,35 +4,37 @@ import { logAudit } from '../../services/auditLog.js';
 
 export const adminLeadsRouter = Router();
 
-adminLeadsRouter.get('/soft', async (req, res) => {
-  const result = await pool.query(
-    `select l.*, b.name as bank_name from soft_leads l left join banks b on b.id = l.bank_id order by l.created_at desc`
-  );
-  res.json({ softLeads: result.rows });
+const LEAD_SELECT = `
+  select l.lead_id as id, l.full_name as name, l.phone, l.email, l.requested_amount, l.product_name,
+         l.rate_snapshot, l.estimated_emi_snapshot, l.requested_term_years, l.source_trigger, l.notes, l.created_at,
+         c.code as category, c.label as category_label, s.code as status, s.label as status_label,
+         b.name as bank_name, a.email as assigned_to
+  from leads l
+  join master_lead_statuses s on s.lead_status_id = l.lead_status_id
+  left join master_loan_categories c on c.loan_category_id = l.loan_category_id
+  left join banks b on b.bank_id = l.preferred_bank_id
+  left join users a on a.user_id = l.assigned_to_user_id
+  where not l.is_deleted`;
+
+adminLeadsRouter.get('/', async (req, res) => {
+  const [leads, statuses] = await Promise.all([
+    pool.query(`${LEAD_SELECT} order by l.created_at desc limit 500`),
+    pool.query('select code as id, label from master_lead_statuses where is_active order by sort_order'),
+  ]);
+  res.json({ leads: leads.rows, statuses: statuses.rows });
 });
 
-adminLeadsRouter.get('/applications', async (req, res) => {
+adminLeadsRouter.patch('/:id', async (req, res) => {
+  const { status, notes } = req.body;
   const result = await pool.query(
-    `select a.*, u.email as user_email, u.name as user_name, b.name as bank_name, p.name as product_name
-     from applications a
-     join users u on u.id = a.user_id
-     join banks b on b.id = a.bank_id
-     left join products p on p.id = a.product_id
-     order by a.created_at desc`
+    `update leads set
+       lead_status_id = coalesce((select lead_status_id from master_lead_statuses where code = $1), lead_status_id),
+       notes = coalesce($2, notes), updated_at = now(), updated_by = $4
+     where lead_id = $3 and not is_deleted returning lead_id`,
+    [status ?? null, notes ?? null, Number(req.params.id), req.user.email]
   );
-  res.json({ applications: result.rows });
-});
-
-adminLeadsRouter.put('/applications/:id/status', async (req, res) => {
-  const { status } = req.body;
-  const allowed = ['new', 'contacted', 'approved', 'rejected', 'closed'];
-  if (!allowed.includes(status)) return res.status(400).json({ error: `status must be one of: ${allowed.join(', ')}` });
-
-  const result = await pool.query(
-    `update applications set status = $1, updated_at = now() where id = $2 returning *`,
-    [status, req.params.id]
-  );
-  if (!result.rows[0]) return res.status(404).json({ error: 'Application not found.' });
-  await logAudit(req.user.email, 'application.statusChange', { applicationId: req.params.id, status });
-  res.json({ application: result.rows[0] });
+  if (!result.rows[0]) return res.status(404).json({ error: 'Lead not found.' });
+  if (status) await logAudit(req.user, 'Changed lead status', `Lead ${req.params.id} → ${status}`);
+  const lead = await pool.query(`${LEAD_SELECT} and l.lead_id = $1`, [Number(req.params.id)]);
+  res.json({ lead: lead.rows[0] });
 });

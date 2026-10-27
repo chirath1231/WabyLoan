@@ -13,8 +13,8 @@ export default function CompareModal({ results, onClose }) {
   const { t } = useLang();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card fade-in w-full max-w-3xl max-h-[85vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4" onClick={onClose}>
+      <div className="card modal-panel w-full max-w-3xl max-h-[85vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-bold text-lg">{t('compareSelected')}</h2>
           <button onClick={onClose} className="text-2xl leading-none" style={{ color: 'var(--color-text-400)' }}>&times;</button>

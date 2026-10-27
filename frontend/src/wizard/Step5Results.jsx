@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useLang } from '../context/LangContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { fmt } from '../utils/money.js';
 import BankResultCard from './BankResultCard.jsx';
 import CompareModal from './CompareModal.jsx';
 import BankDetailModal from './BankDetailModal.jsx';
 import SoftLeadForm from './SoftLeadForm.jsx';
+
+const MAX_COMPARE = 3;
+// Guests see this many eligible offers, identity blurred, as in the prototype's renderStep5Guest().
+const GUEST_PREVIEW_COUNT = 4;
 
 export default function Step5Results({ wizard, eligibility, onBack }) {
   const { t } = useLang();
@@ -18,116 +23,166 @@ export default function Step5Results({ wizard, eligibility, onBack }) {
 
   const eligibleResults = results.filter((r) => !r.ineligible);
   const ineligibleResults = results.filter((r) => r.ineligible);
-  const sponsored = eligibleResults.filter((r) => r.bank.sponsored);
-  const regular = eligibleResults.filter((r) => !r.bank.sponsored);
+  // Sponsored placement sits outside the ranked comparison: one card per bank, its cheapest variant.
+  const sponsored = [];
+  for (const r of eligibleResults) {
+    if (r.bank.sponsored && !sponsored.some((s) => s.bank.id === r.bank.id)) sponsored.push(r);
+  }
   const bestKey = eligibleResults[0]?.variantKey;
+  const lowestEmi = [...eligibleResults].sort((a, b) => a.emi - b.emi)[0];
+  const highestLoan = [...eligibleResults].sort((a, b) => b.maxLoan - a.maxLoan)[0];
+  const visibleResults = isRestricted ? eligibleResults.slice(0, GUEST_PREVIEW_COUNT) : eligibleResults;
 
   const toggleCompare = (key) => {
-    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : prev.length >= MAX_COMPARE ? prev : [...prev, key]));
   };
 
   const whatsappShare = () => {
     const top = eligibleResults[0];
     const text = top
-      ? `I compared loan offers on Waby Loan — best offer: ${top.bank.name} at ${top.rate}%, up to LKR ${Math.round(top.maxLoan).toLocaleString('en-LK')}.`
+      ? `I compared loan offers on Waby Loan — best offer: ${top.bank.name} at ${top.rate.toFixed(2)}%, up to ${fmt(top.maxLoan)}.`
       : 'Check out Waby Loan for comparing Sri Lankan bank loan offers.';
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const shouldBlur = (index) => isRestricted && index >= 2;
-
-  const applicantSnapshot = wizard;
   const selectedResults = results.filter((r) => selected.includes(r.variantKey));
+  const unlock = () => openAuthPanel('signup');
 
   return (
-    <div className="pb-24">
+    <div className="pb-28">
       {/* Fixed-position children (modals, bottom bars) must stay OUTSIDE this
           fade-in wrapper: the fadeIn keyframes end on transform:translateY(0),
           and any non-'none' computed transform on an ancestor — even a no-op
           one — creates a new containing block for position:fixed descendants,
           pinning them to this div's box instead of the viewport. */}
       <div className="fade-in">
-      <h1 className="font-display font-bold text-2xl mb-1">{t('step5Title')}</h1>
-      <p className="mb-6" style={{ color: 'var(--color-text-600)' }}>
-        {eligibleResults.length} eligible offer{eligibleResults.length === 1 ? '' : 's'} found across {results.length} products checked.
-      </p>
+        <section className="card p-6 sm:p-8 mb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-xl font-bold" style={{ color: 'var(--color-teal-900)' }}>{t('step5Title')}</h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-600)' }}>
+                {eligibleResults.length} eligible offer{eligibleResults.length === 1 ? '' : 's'} across {results.length} products checked
+                {eligibility.dualSchemeMode && <> · <span style={{ color: 'var(--color-violet-700)' }}>Professional scheme rates included</span></>}
+              </p>
+            </div>
+            <button type="button" onClick={onBack} className="btn-ghost px-4 py-2 rounded-xl text-sm">
+              <i className="fa-solid fa-arrow-left mr-1.5 text-xs" />{t('back')}
+            </button>
+          </div>
 
-      {sponsored.length > 0 && (
-        <div className="mb-6">
-          <h3 className="font-semibold text-sm mb-2" style={{ color: 'var(--color-text-600)' }}>Sponsored</h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sponsored.map((r) => (
+          {eligibleResults.length > 0 && !isRestricted && (
+            <div className="grid sm:grid-cols-2 gap-3 mt-5">
+              <div className="stat-tile p-4">
+                <p className="text-[10px] font-semibold uppercase" style={{ color: 'var(--color-text-400)' }}>🏆 Lowest EMI</p>
+                <p className="font-semibold text-sm mt-1">{lowestEmi.bank.name}</p>
+                <p className="font-mono font-bold text-lg" style={{ color: 'var(--color-teal-700)' }}>{fmt(lowestEmi.emi)}<span className="text-xs font-semibold"> / month</span></p>
+              </div>
+              <div className="stat-tile p-4">
+                <p className="text-[10px] font-semibold uppercase" style={{ color: 'var(--color-text-400)' }}>💰 Highest Loan Amount</p>
+                <p className="font-semibold text-sm mt-1">{highestLoan.bank.name}</p>
+                <p className="font-mono font-bold text-lg" style={{ color: 'var(--color-teal-700)' }}>{fmt(highestLoan.maxLoan)}</p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {sponsored.length > 0 && !isRestricted && (
+          <div className="mb-5">
+            <p className="text-[11px] font-bold tracking-wide mb-2" style={{ color: 'var(--color-text-400)' }}>
+              FEATURED PARTNER — sponsored placement, not part of the ranked comparison
+            </p>
+            <div className="flex flex-col gap-4">
+              {sponsored.map((r) => (
+                <BankResultCard
+                  key={`sp-${r.variantKey}`} result={r} isBest={false}
+                  isSelected={selected.includes(r.variantKey)} compareDisabled={selected.length >= MAX_COMPARE}
+                  onToggleCompare={() => toggleCompare(r.variantKey)} onViewDetails={() => setDetailResult(r)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {eligibleResults.length === 0 ? (
+          <div className="card p-8 text-center mb-5">
+            <i className={`fa-solid ${isRestricted ? 'fa-lock' : 'fa-headset'} text-3xl mb-3`} style={{ color: 'var(--color-teal-700)' }} />
+            <p className="font-semibold mb-1">No banks currently match this profile</p>
+            <p className="text-sm mb-4" style={{ color: 'var(--color-text-600)' }}>Talk to a consultant — they can often find options the calculator can't.</p>
+            <SoftLeadForm category={wizard.loanCategory} bankId={null} />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 mb-5">
+            {isRestricted && (
+              <div className="card p-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold"><i className="fa-solid fa-lock mr-2" style={{ color: 'var(--color-teal-700)' }} />{t('guestLockTitle')}</p>
+                <button onClick={unlock} className="btn-primary px-4 py-2 rounded-xl text-sm">{t('signUpUnlock')}</button>
+              </div>
+            )}
+            {visibleResults.map((r, i) => (
               <BankResultCard
-                key={r.variantKey} result={r} isBest={r.variantKey === bestKey}
-                isSelected={selected.includes(r.variantKey)} onToggleCompare={() => toggleCompare(r.variantKey)}
-                onViewDetails={() => setDetailResult(r)}
+                key={r.variantKey} result={r} rank={i + 1} isBest={r.variantKey === bestKey && !isRestricted}
+                isSelected={selected.includes(r.variantKey)} compareDisabled={selected.length >= MAX_COMPARE}
+                onToggleCompare={() => toggleCompare(r.variantKey)} onViewDetails={() => setDetailResult(r)}
+                blurred={isRestricted} onUnlock={unlock}
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {eligibleResults.length === 0 ? (
-        <div className="card p-8 text-center mb-6">
-          <p className="mb-4" style={{ color: 'var(--color-text-600)' }}>No eligible offers found based on your answers. Talk to a consultant instead.</p>
-          <SoftLeadForm category={wizard.loanCategory} bankId={null} />
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {regular.map((r, i) => (
-            <BankResultCard
-              key={r.variantKey} result={r} isBest={r.variantKey === bestKey}
-              isSelected={selected.includes(r.variantKey)} onToggleCompare={() => toggleCompare(r.variantKey)}
-              onViewDetails={() => setDetailResult(r)} blurred={shouldBlur(i)}
-            />
-          ))}
-        </div>
-      )}
-
-      {ineligibleResults.length > 0 && (
-        <details className="mb-6">
-          <summary className="text-sm font-semibold cursor-pointer" style={{ color: 'var(--color-text-600)' }}>
-            {ineligibleResults.length} not eligible — show anyway
-          </summary>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
-            {ineligibleResults.map((r) => (
-              <BankResultCard key={r.variantKey} result={r} isBest={false} isSelected={false} onToggleCompare={() => {}} onViewDetails={() => {}} />
-            ))}
-          </div>
-        </details>
-      )}
-
-      {eligibleResults.length > 0 && (
-        <div className="card p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <p className="text-sm font-semibold">Want to talk it through with someone?</p>
-            <div className="flex gap-2">
-              <button onClick={whatsappShare} className="btn-whatsapp rounded-lg h-10 px-4 text-sm"><i className="fa-brands fa-whatsapp mr-1" />{t('sendWhatsapp')}</button>
+        {ineligibleResults.length > 0 && !isRestricted && (
+          <div className="mb-5">
+            <p className="text-[11px] font-bold tracking-wide mb-2" style={{ color: 'var(--color-text-400)' }}>NOT ELIGIBLE ({ineligibleResults.length})</p>
+            <div className="flex flex-col gap-2">
+              {ineligibleResults.map((r) => <BankResultCard key={`x-${r.variantKey}`} result={r} />)}
             </div>
           </div>
-          <div className="mt-3">
-            <SoftLeadForm category={wizard.loanCategory} bankId={null} />
+        )}
+
+        {eligibleResults.length > 0 && (
+          <div className="card p-5 mb-5">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              <div>
+                <p className="font-semibold text-sm">Prefer to talk it through?</p>
+                <p className="hint">A Waby consultant can walk you through these offers.</p>
+              </div>
+              <button onClick={whatsappShare} className="btn-whatsapp rounded-xl h-10 px-4 text-sm"><i className="fa-brands fa-whatsapp mr-1" />{t('sendWhatsapp')}</button>
+            </div>
+            <div className="mt-3">
+              <SoftLeadForm category={wizard.loanCategory} bankId={null} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        <p className="hint mt-8 max-w-2xl">{t('footerDisclaimer')}</p>
+        <p className="hint mt-1 max-w-2xl">{t('footerPrivacy')}</p>
       </div>
 
-      {isRestricted && eligibleResults.length > 2 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t p-4" style={{ background: 'var(--color-card)', borderColor: 'var(--color-line)' }}>
-          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-3 justify-between">
+      {isRestricted && eligibleResults.length > 0 && (
+        <div id="guestUnlockBar" className="p-4">
+          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-3 justify-between text-white">
             <div>
               <p className="font-semibold text-sm">{t('guestLockTitle')}</p>
-              <p className="hint">{t('guestLockSub')}</p>
+              <p className="text-[12px] opacity-80">{t('guestLockSub')}</p>
             </div>
-            <button onClick={() => openAuthPanel('signup')} className="btn-primary rounded-lg h-10 px-5 whitespace-nowrap">{t('signUpUnlock')}</button>
+            <button onClick={unlock} className="rounded-xl h-10 px-5 whitespace-nowrap font-semibold" style={{ background: '#fff', color: 'var(--color-teal-800)' }}>
+              {t('signUpUnlock')}
+            </button>
           </div>
         </div>
       )}
 
-      {selected.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t p-3" style={{ background: 'var(--color-card)', borderColor: 'var(--color-line)' }}>
-          <div className="max-w-4xl mx-auto flex justify-end">
-            <button onClick={() => setCompareOpen(true)} className="btn-primary rounded-lg h-10 px-5">
+      {!isRestricted && selected.length >= 2 && (
+        <div id="compareBar" className="p-3">
+          <div className="max-w-4xl mx-auto flex flex-wrap items-center gap-2 justify-between">
+            <div className="flex flex-wrap gap-2">
+              {selectedResults.map((r) => (
+                <span key={r.variantKey} className="badge badge-teal flex items-center gap-1.5" style={{ fontSize: 12 }}>
+                  {r.bank.short}{r.variantLabel ? ` · ${r.variantLabel}` : ''}
+                  <button type="button" aria-label="Remove" onClick={() => toggleCompare(r.variantKey)}><i className="fa-solid fa-xmark" /></button>
+                </span>
+              ))}
+            </div>
+            <button onClick={() => setCompareOpen(true)} className="btn-primary rounded-xl h-10 px-5 text-sm">
               {t('compareSelected')} ({selected.length})
             </button>
           </div>
@@ -138,16 +193,9 @@ export default function Step5Results({ wizard, eligibility, onBack }) {
       {detailResult && (
         <BankDetailModal
           result={detailResult} category={wizard.loanCategory}
-          applicantSnapshot={applicantSnapshot} onClose={() => setDetailResult(null)}
+          applicantSnapshot={wizard} onClose={() => setDetailResult(null)}
         />
       )}
-
-      <div className="mt-2">
-        <button type="button" onClick={onBack} className="btn-ghost rounded-lg h-11 px-6">{t('back')}</button>
-      </div>
-
-      <p className="hint mt-8 max-w-2xl">{t('footerDisclaimer')}</p>
-      <p className="hint mt-1 max-w-2xl">{t('footerPrivacy')}</p>
     </div>
   );
 }

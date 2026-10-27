@@ -1,27 +1,36 @@
 import { useState } from 'react';
 import Drawer from './components/Drawer.jsx';
-import ProductDrawer from './ProductDrawer.jsx';
-import { TextField, SelectField, CheckboxField } from './components/Field.jsx';
-import { api } from '../api/client.js';
+import RemarksEditor from './components/RemarksEditor.jsx';
+import ProductDrawer, { rateSummary } from './ProductDrawer.jsx';
+import Field, { TextField, SelectField, CheckboxField } from './components/Field.jsx';
+import { useLookups, toOptions } from './useLookups.js';
+import { api, apiErrorMessage } from '../api/client.js';
 
-const SECTORS = ['government', 'semi_government', 'private', 'self_employed'];
-const LOAN_CATEGORIES = ['personal', 'professional', 'housing', 'vehicle', 'business', 'pension'];
-
-function emptyBank() {
+function emptyBank(lookups) {
   return {
-    id: '', name: '', short: '', type: 'bank', active: true, sponsored: false,
-    baseRate: 10, maxTermYears: { personal: 5, professional: 7, housing: 25, vehicle: 7, business: 6, pension: 5 },
-    docChargePct: 0.75, docChargeMin: 2000, docChargeCap: 25000, color: '#00695C',
-    allowedSectors: [...SECTORS], targetOccupation: 'all',
-    remarks: [], specialSchemeRemarks: [], specialRate: null, specialDocChargePct: null, specialMaxTermYears: null,
+    code: '', name: '', short: '', type: 'bank', active: true, sponsored: false,
+    baseRate: 10, docChargePct: 0.75, docChargeMin: 2000, docChargeCap: 25000, color: '#00695C',
+    logoUrl: '', websiteUrl: '', email: '', hotline: '', phone: '', whatsapp: '', address: '', branchLocatorUrl: '',
+    ratesEffectiveDate: null,
+    maxTermYears: {},
+    allowedSectors: (lookups?.sectors || []).map((s) => s.id),
+    remarks: [],
   };
 }
 
+// Only the editable columns + child collections go back to the API (not products / ids / timestamps).
+function payload(form) {
+  const { products, id, updatedAt, ...rest } = form;
+  return rest;
+}
+
 export default function BankDrawer({ bank, companyLists, onClose, onSaved }) {
+  const lookups = useLookups();
   const isNew = !bank;
-  const [form, setForm] = useState(() => (bank ? { ...emptyBank(), ...bank } : emptyBank()));
+  const [form, setForm] = useState(() => (bank ? { ...emptyBank(null), ...bank } : emptyBank(lookups)));
   const [saving, setSaving] = useState(false);
-  const [productDrawer, setProductDrawer] = useState(null); // { product } | { new: true } | null
+  const [error, setError] = useState('');
+  const [productDrawer, setProductDrawer] = useState(null); // { product } | { isNew: true } | null
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const setTermYears = (cat, v) => set({ maxTermYears: { ...form.maxTermYears, [cat]: v } });
@@ -32,13 +41,13 @@ export default function BankDrawer({ bank, companyLists, onClose, onSaved }) {
 
   const save = async () => {
     setSaving(true);
+    setError('');
     try {
-      if (isNew) {
-        await api.post('/admin/banks', form);
-      } else {
-        await api.put(`/admin/banks/${bank.id}`, form);
-      }
+      if (isNew) await api.post('/admin/banks', payload(form));
+      else await api.put(`/admin/banks/${bank.id}`, payload(form));
       onSaved();
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not save the bank.'));
     } finally {
       setSaving(false);
     }
@@ -50,24 +59,56 @@ export default function BankDrawer({ bank, companyLists, onClose, onSaved }) {
     onSaved();
   };
 
+  const section = { borderColor: 'var(--color-adm-border)' };
+
   return (
     <>
-      <Drawer title={isNew ? 'Add Bank' : `Edit: ${bank.name}`} onClose={onClose} onSave={save} saving={saving} wide>
+      <Drawer title={isNew ? 'Add Bank' : `Edit: ${bank.name}`} onClose={onClose} onSave={save} saving={saving} error={error} wide>
         <div className="grid sm:grid-cols-2 gap-4">
-          {isNew && <TextField label="Bank ID (slug)" value={form.id} onChange={(v) => set({ id: v.toLowerCase().replace(/[^a-z0-9_]/g, '') })} hint="Lowercase, no spaces — used internally, can't change later." />}
+          <TextField
+            label="Bank code" value={form.code} onChange={(v) => set({ code: v.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+            hint="Lowercase, no spaces — the bank's stable identifier (banks.bank_code)."
+          />
           <TextField label="Full name" value={form.name} onChange={(v) => set({ name: v })} />
           <TextField label="Short name" value={form.short} onChange={(v) => set({ short: v })} />
-          <SelectField label="Type" value={form.type} onChange={(v) => set({ type: v })} options={[{ value: 'bank', label: 'Bank' }, { value: 'finance', label: 'Finance company' }]} />
-          <TextField label="Base rate (%)" type="number" value={form.baseRate} onChange={(v) => set({ baseRate: v })} />
-          <TextField label="Brand color" value={form.color} onChange={(v) => set({ color: v })} />
+          <SelectField label="Type" value={form.type} onChange={(v) => set({ type: v })} options={toOptions(lookups?.bankTypes)} />
+          <TextField label="Base rate (%)" type="number" value={form.baseRate} onChange={(v) => set({ baseRate: v })} hint="Used only by the synthesized general facility." />
+          <Field label="Brand color">
+            <div className="flex gap-2">
+              <input type="color" value={form.color || '#00695C'} onChange={(e) => set({ color: e.target.value })} className="h-[42px] w-12 rounded-lg" />
+              <input className="admin-input" value={form.color || ''} onChange={(e) => set({ color: e.target.value })} />
+            </div>
+          </Field>
+          <TextField label="Rates effective date" type="date" value={form.ratesEffectiveDate?.slice(0, 10)} onChange={(v) => set({ ratesEffectiveDate: v || null })} />
         </div>
 
         <div className="flex gap-4">
           <CheckboxField label="Active" checked={form.active} onChange={(v) => set({ active: v })} />
-          <CheckboxField label="Sponsored" checked={form.sponsored} onChange={(v) => set({ sponsored: v })} />
+          <CheckboxField label="Sponsored (Featured Partner)" checked={form.sponsored} onChange={(v) => set({ sponsored: v })} />
         </div>
 
-        <div className="border-t pt-4" style={{ borderColor: 'var(--color-adm-border)' }}>
+        <div className="border-t pt-4" style={section}>
+          <h3 className="font-semibold text-sm mb-3">Contact</h3>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <TextField label="Website" value={form.websiteUrl} onChange={(v) => set({ websiteUrl: v })} />
+            <TextField label="Email" value={form.email} onChange={(v) => set({ email: v })} />
+            <TextField label="Hotline" value={form.hotline} onChange={(v) => set({ hotline: v })} />
+            <TextField label="WhatsApp" value={form.whatsapp} onChange={(v) => set({ whatsapp: v })} />
+            <TextField label="Branch locator URL" value={form.branchLocatorUrl} onChange={(v) => set({ branchLocatorUrl: v })} />
+            {form.logoUrl?.startsWith('data:') ? (
+              <Field label="Logo">
+                <div className="flex items-center gap-3">
+                  <img src={form.logoUrl} alt="" className="h-10 w-10 object-contain rounded" />
+                  <button type="button" onClick={() => set({ logoUrl: '' })} className="admin-btn-ghost px-3 py-1.5 text-xs">Replace with URL</button>
+                </div>
+              </Field>
+            ) : (
+              <TextField label="Logo URL" value={form.logoUrl} onChange={(v) => set({ logoUrl: v })} />
+            )}
+          </div>
+        </div>
+
+        <div className="border-t pt-4" style={section}>
           <h3 className="font-semibold text-sm mb-3">Doc charge (general facility)</h3>
           <div className="grid sm:grid-cols-3 gap-4">
             <TextField label="Doc charge %" type="number" value={form.docChargePct} onChange={(v) => set({ docChargePct: v })} />
@@ -76,38 +117,43 @@ export default function BankDrawer({ bank, companyLists, onClose, onSaved }) {
           </div>
         </div>
 
-        <div className="border-t pt-4" style={{ borderColor: 'var(--color-adm-border)' }}>
+        <div className="border-t pt-4" style={section}>
           <h3 className="font-semibold text-sm mb-3">Max term by category (years)</h3>
           <div className="grid sm:grid-cols-3 gap-4">
-            {LOAN_CATEGORIES.map((cat) => (
-              <TextField key={cat} label={cat} type="number" value={form.maxTermYears[cat]} onChange={(v) => setTermYears(cat, v)} />
+            {(lookups?.loanCategories || []).map((cat) => (
+              <TextField key={cat.id} label={cat.label} type="number" value={form.maxTermYears[cat.id]} onChange={(v) => setTermYears(cat.id, v)} />
             ))}
           </div>
         </div>
 
-        <div className="border-t pt-4" style={{ borderColor: 'var(--color-adm-border)' }}>
+        <div className="border-t pt-4" style={section}>
           <h3 className="font-semibold text-sm mb-3">Allowed sectors</h3>
           <div className="flex flex-wrap gap-2">
-            {SECTORS.map((s) => (
-              <button key={s} type="button" onClick={() => toggleSector(s)} className={`admin-badge ${form.allowedSectors.includes(s) ? 'admin-badge-active' : 'admin-badge-inactive'}`}>
-                {s}
+            {(lookups?.sectors || []).map((s) => (
+              <button key={s.id} type="button" onClick={() => toggleSector(s.id)} className={`admin-badge ${form.allowedSectors.includes(s.id) ? 'admin-badge-active' : 'admin-badge-inactive'}`}>
+                {s.label}
               </button>
             ))}
           </div>
         </div>
 
+        <div className="border-t pt-4" style={section}>
+          <h3 className="font-semibold text-sm mb-3">Bank remarks</h3>
+          <RemarksEditor remarks={form.remarks} onChange={(remarks) => set({ remarks })} />
+        </div>
+
         {!isNew && (
-          <div className="border-t pt-4" style={{ borderColor: 'var(--color-adm-border)' }}>
+          <div className="border-t pt-4" style={section}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm">Specialty products ({(bank.products || []).length})</h3>
+              <h3 className="font-semibold text-sm">Loan products ({(bank.products || []).length})</h3>
               <button onClick={() => setProductDrawer({ isNew: true })} className="admin-btn-primary px-3 py-1.5 text-sm">+ Add Product</button>
             </div>
             <div className="space-y-2">
               {(bank.products || []).map((p) => (
-                <div key={p.dbId} className="admin-card p-3 flex items-center justify-between">
+                <div key={p.dbId} className="admin-card p-3 flex items-center justify-between gap-3">
                   <div>
                     <div className="font-semibold text-sm">{p.name}</div>
-                    <div className="hint">{p.category} · {p.rate}% · {p.status}</div>
+                    <div className="hint">{p.category} · {rateSummary(p)} · {p.status}</div>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setProductDrawer({ product: p })} className="admin-btn-ghost px-3 py-1.5 text-xs">Edit</button>
@@ -115,7 +161,7 @@ export default function BankDrawer({ bank, companyLists, onClose, onSaved }) {
                   </div>
                 </div>
               ))}
-              {!(bank.products || []).length && <p className="hint">No specialty products yet — this bank only offers its general facility.</p>}
+              {!(bank.products || []).length && <p className="hint">No products yet — this bank only offers its general facility.</p>}
             </div>
           </div>
         )}
@@ -133,3 +179,4 @@ export default function BankDrawer({ bank, companyLists, onClose, onSaved }) {
     </>
   );
 }
+
